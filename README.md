@@ -80,6 +80,14 @@ You can choose between a discrete or continous action space.
     - accel: m/s/s of the ego, positive for forward, negative for reverse
     - brake: From 0g at -1 to 1g at 1 of brake force
 
+    |**Action Space** | |
+    | ------------- | ------------- |
+    | **Variable**| **Range**|
+    | steer     | {-1, 1} |
+    | accel | {-1, 1} |
+    | brake | {-1, 1} |
+
+
 ### Observation space
 
 ### Reward function
