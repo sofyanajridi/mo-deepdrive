@@ -84,6 +84,19 @@ You can choose between a discrete or continous action space.
 
 ### Reward function
 
+Nowhere mentioned so derived from looking at the code:
+
+Reward = speed_reward + win_reward - gforce_penalty - collision_penalty - jerk_penalty - lane_penalty)
+
+where:
+- speed_reward = I think this is depended on how close the car is to the destination.
+- win_reward = reached destination 
+- gforce_penalty = g_force above 0.5
+- collision_penalty = collided with other car or bike
+- jerk_penalty = jerk treshold reached (looking at jerk between two frames)
+- lane_penalty = how far the car is outside of the lanes
+
+
 
 ### Setup
 
@@ -110,22 +123,63 @@ Remove following line:
 
         Going back to older versions of the pyglet library introduced many other issues.
 
-## Powerdrive benchmark
+## Powergym benchmark
 
 ### Environment variations
 
+
+The implemented circuit systems are summerized as follows.
+| **System**| **# Caps**| **# Regs**| **# Bats**|
+| ------------- | ------------- |------- |------- |
+| 13Bus     | 2 | 3 | 1 |
+| 34Bus | 4 | 6 | 2 |
+| 123Bus | 4 | 7 | 4 |
+| 8500Node | 10 | 12 | 10 |
+
 ### Action space
+{} denotes a finite set and [] denote a continuous interval.
+
+Discrete battery has discretized choices on the discharge power (e.g., choose from {0,...,32}) and continuous battery chooses the normalized discharge power from the interval [-1,1]
+
+|**Action Space** | |
+| ------------- | ------------- |
+| **Variable**| **Range**|
+| Capacitor status     | {0, 1} |
+| Regulator tap number | {0, ..., 32} |
+| Discharge power (disc.) | {0, ..., 32} |
+| Discharge power (cont.) | [-1, 1]  |
+
+This means that for e.g for 13bus discrete an action consists of an array of length 6 (2 caps + 3 regs + 1 bats): 
+
+`[Capacitor status 1, capacitor status 2, Regulator tap number 1, Regulator tap number 2, Regulator tap number 3, Discharge power 1 (disc.) ]`
 
 ### Observation space
 
+{} denotes a finite set and [] denote a continuous interval.
+
+|**Observation Space** | |
+| ------------- | ------------- |
+| **Variable**| **Range**|
+| Bus voltage     | [0.8, 1.2] |
+| Capacitor status     | {0, 1} |
+| Regulator tap number | {0, ..., 32} |
+| State-of-charge (soc) | [0, 1] |
+| Discharge power  | [-1, 1]  |
+
 ### Reward function
+
+The reward function is a combination of three losses: voltage violation, control error, and power loss. The control error is further decomposed into capacitor's & regulator's switching cost and battery's discharge loss & soc loss. The weights among these losses depends on the circuit system and is listed in the Appendix of our paper.
 
 ### Setup
 
 ### Bugs and issues
+- Render function is not implemented
 
 
 ## Authors and acknowledgment
+
+- Deepdrive zero: https://github.com/deepdrive/deepdrive-zero
+- PowerGym: https://github.com/siemens/powergym 
 
 
 ## License
