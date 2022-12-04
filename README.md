@@ -4,89 +4,132 @@
 
 ## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Deepdrive benchmark
 
-## Add your files
+### Environment variations
+![IntersactionEnv](/images/IntersactionEnv.png "IntersactionEnv")
+![IntersactionEnv](/images/StaticObstacleEnv.png "IntersactionEnv")
+![IntersactionEnv](/images/OneWayPointEnv.png "IntersactionEnv")
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
 
-```
-cd existing_repo
-git remote add origin https://gitlab.ai.vub.ac.be/Sofyan.Ajridi/momarl-benchmarks.git
-git branch -M main
-git push -uf origin main
-```
+1. Multi Agent Intersaction Env
+2. Single Agent StaticObstacle Env (Grey line is a bike)
+3. Single Agent OneWayPoint Env
 
-## Integrate with your tools
+Orange point is the final state
 
-- [ ] [Set up project integrations](https://gitlab.ai.vub.ac.be/Sofyan.Ajridi/momarl-benchmarks/-/settings/integrations)
+Each environment can be further configured on the following properties:
+ - jerk_penalty_coeff              (default 0)
+ - gforce_penalty_coeff            (default 0)
+ - lane_penalty_coeff              (default 0.02)
+ - collision_penalty_coeff         (default 0.31)
+ - speed_reward_coeff              (default 0.5)
+ - win_coefficient                 (default 1)
+ - gforce_threshold                (default 1)
+ - jerk_threshold                  (default None)
+ - constrain_controls              (default False)
+ - ignore_brake                    (default False)
+ - forbid_deceleration             (default False)
+ - expect_normalized_action_deltas (default False)
+ - discrete_actions
+ - incent_win                      (default True)
+ - dummy_accel_agent_indices       (default None)
+ - wait_for_action                 (default False)
+ - incent_yield_to_oncoming_traffic (default True)
+ - physics_steps_per_observation   (default 6)
+ - end_on_lane_violation           (default False)
+ - lane_margin                     (default 0)
+ - is_intersection_map             (default True)
+ - end_on_harmful_gs               (default False)
 
-## Collaborate with your team
+### Single agent vs Multi agent
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+The env.step function works the same for the single agent and the multi agent env variation, however for the multi agent variation we are looping through agents:
+1. agent 1 obs = env.reset() (Get a blank observation, i.e. just zeroes)
+2. agent_1_action = model(agent_1_obs)
+3. agent_2_obs = env.step(agent_1_action) (step 1: agent_2_obs is just blank)
+4. agent_2_action = model(agent_2_obs)
+5. agent_1_obs = env.step(agent_2_ action) (step 2: where agent_1_obs was from step 1 above)
+6. agent_1_action = model(agent_1_obs)
+7. agent_2_obs = env.step(agent_1_action) (step 3)
+8. ...
 
-## Test and Deploy
+### Action space
+You can choose between a discrete or continous action space.
+- Discrete actions: (Between 0 and 15)
+    - 0: 'IDLE'
+    - 1: 'DECAY_STEERING_MAINTAIN_SPEED'
+    - 2: 'DECAY_STEERING_DECREASE_SPEED'
+    - 3: 'DECAY_STEERING_INCREASE_SPEED'
+    - 4: 'SMALL_STEER_LEFT_MAINTAIN_SPEED'
+    - 5: 'SMALL_STEER_LEFT_DECREASE_SPEED'
+    - 6: 'SMALL_STEER_LEFT_INCREASE_SPEED'
+    - 7: 'SMALL_STEER_RIGHT_MAINTAIN_SPEED'
+    - 8: 'SMALL_STEER_RIGHT_DECREASE_SPEED'
+    - 9: 'SMALL_STEER_RIGHT_INCREASE_SPEED'
+    - 10: 'LARGE_STEER_LEFT_MAINTAIN_SPEED'
+    - 11: 'LARGE_STEER_LEFT_DECREASE_SPEED'
+    - 12: 'LARGE_STEER_LEFT_INCREASE_SPEED'
+    - 13: 'LARGE_STEER_RIGHT_MAINTAIN_SPEED'
+    - 14: 'LARGE_STEER_RIGHT_DECREASE_SPEED'
+    - 15: 'LARGE_STEER_RIGHT_INCREASE_SPEED'
 
-Use the built-in continuous integration in GitLab.
+- Continous actions: [steer, accel, brake] continous value between -1 and 1 for each action
+    - steer: Heading angle of the ego
+    - accel: m/s/s of the ego, positive for forward, negative for reverse
+    - brake: From 0g at -1 to 1g at 1 of brake force
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### Observation space
 
-***
+### Reward function
 
-# Editing this README
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Setup
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Bugs and issues
 
-## Name
-Choose a self-explaining name for your project.
+- When cloning from the original repository and following the install instructions, the benchmark will not work. To fix, go to file _agent.py_ on line 163.
+Remove following line:
+`self.observation_space = env.observation_space`
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+- Existing expirements configurations of the authors do not work anymore, this is because they are calling a non existing function from a library (mpi4py) that has now been updated
+    - Tried solving this by going back to older versions of that specific library, however this caused other issues. 
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+- env.render() does not work anymore, again this is because they are calling a non existing function from a library (pyglet) that has now been updated
+    - The function that is causing this issue can be found in file _env.py_  line 261:
+        ```
+        pyglet.app.event_loop.has_exit = False
+        pyglet.app.event_loop._legacy_setup() # This line is causing the issue. 
+        pyglet.app.event_loop.run()
+        pyglet.app.platform_event_loop.start()
+        pyglet.app.event_loop.dispatch_event('on_enter')
+        pyglet.app.event_loop.is_running = True
+        ```
+        I have to tried to fix this by manually editing the pyglet library and adding the missing piece of function from a random github repository (https://github.com/jpaalasm/pyglet/blob/bf1d1f209ca3e702fd4b6611377257f0e2767282/pyglet/app/base.py#L211) that still  had the original 'legacy_setup' function in their pyglet library folder, sadly this did not work. 
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+        Going back to older versions of the pyglet library introduced many other issues.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Powerdrive benchmark
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Environment variations
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Action space
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Observation space
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### Reward function
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Setup
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### Bugs and issues
+
 
 ## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+
 
 ## License
-For open source projects, say how it is licensed.
+
 
 ## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
