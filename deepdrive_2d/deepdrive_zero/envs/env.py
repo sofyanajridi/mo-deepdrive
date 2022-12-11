@@ -259,14 +259,14 @@ class Deepdrive2DEnv(gym.Env):
             env=self,
             fps=self.fps)
         pyglet.app.event_loop.has_exit = False
-        #pyglet.app.event_loop._legacy_setup()
+        pyglet.app.event_loop._legacy_setup()
         # from pyglet.window import Window
         # Window._enable_event_queue = False
         # from pyglet import app
         # for window in app.windows:
         #     window.switch_to()
         #     window.dispatch_pending_events()
-        pyglet.app.event_loop.run()
+        #pyglet.app.event_loop.run()
         pyglet.app.platform_event_loop.start()
         pyglet.app.event_loop.dispatch_event('on_enter')
         pyglet.app.event_loop.is_running = True
