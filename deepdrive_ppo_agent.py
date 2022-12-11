@@ -1,3 +1,6 @@
+
+from stable_baselines3 import PPO
+
 import gym
 
 import deepdrive_zero
@@ -20,12 +23,15 @@ env_config = dict(
 )
 
 env.configure_env(env_config)
-env.reset()
-env.render()
-done = False
-while not done:
-    action = env.action_space.sample()
-    obs, reward, done, info = env.step(action)
-    print(reward)
 
+model = PPO("MlpPolicy", env, verbose=1)
+model.learn(total_timesteps=10_000)
 
+vec_env = model.get_env()
+obs = vec_env.reset()
+
+for i in range(1000):
+    action, _states = model.predict(obs, deterministic=True)
+    obs, reward, done, info = vec_env.step(action)
+
+env.close()
