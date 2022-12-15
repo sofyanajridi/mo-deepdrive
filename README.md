@@ -14,10 +14,10 @@
 
 
 1. Multi Agent Intersaction Env
-2. Single Agent StaticObstacle Env (Grey line is a bike)
+2. Single Agent StaticObstacle Env (Black line is a bike)
 3. Single Agent OneWayPoint Env
 
-Orange point is the final state
+Orange point is the final state which changes position every episode for the OneWayPointEnv and StaticObstacleEnv.
 
 Each environment can be further configured on the following properties:
  - jerk_penalty_coeff              (default 0)
@@ -130,6 +130,8 @@ Remove following line:
         I have to tried to fix this by manually editing the pyglet library and adding the missing piece of function from a random github repository (https://github.com/jpaalasm/pyglet/blob/bf1d1f209ca3e702fd4b6611377257f0e2767282/pyglet/app/base.py#L211) that still  had the original 'legacy_setup' function in their pyglet library folder, sadly this did not work. 
 
         Going back to older versions of the pyglet library introduced many other issues.
+    
+    --> **Issue has now been fixed, use pyglet==1.5.15, arcade==2.4.2 and pymunk==5.7.0 on Python 3.9 with Rosetta Emulation for M1 Mac**
 
 ## Powergym benchmark
 
