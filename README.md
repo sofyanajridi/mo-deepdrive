@@ -14,10 +14,10 @@
 
 
 1. Multi Agent Intersaction Env
-2. Single Agent StaticObstacle Env (Grey line is a bike)
+2. Single Agent StaticObstacle Env (Black line is a bike)
 3. Single Agent OneWayPoint Env
 
-Orange point is the final state
+Orange point is the final state which changes position every episode for the OneWayPointEnv and StaticObstacleEnv.
 
 Each environment can be further configured on the following properties:
  - jerk_penalty_coeff              (default 0)
