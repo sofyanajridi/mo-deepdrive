@@ -135,6 +135,10 @@ Remove following line:
 
 ### Environment variations
 
+![13busEnv](/images/13busEnv.png "13busEnv")
+
+Example of a 13bus env
+
 
 The implemented circuit systems are summerized as follows.
 | **System**| **# Caps**| **# Regs**| **# Bats**|
@@ -181,8 +185,6 @@ The reward function is a combination of three losses: voltage violation, control
 ### Setup
 
 ### Bugs and issues
-- Render function is not implemented
-
 
 ## Authors and acknowledgment
 
