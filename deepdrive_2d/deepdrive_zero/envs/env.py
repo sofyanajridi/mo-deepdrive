@@ -429,6 +429,8 @@ class Deepdrive2DEnv(gym.Env):
             return False
         elif self.add_static_obstacle:
             for agent in self.agents:
+                if check_collision_ego_obj(agent.ego_rect_tuple,obj2=(agent.static_obstacle_tuple,)):
+                    agent.collided_with = [1]
                 return check_collision_ego_obj(
                     agent.ego_rect_tuple,
                     obj2=(agent.static_obstacle_tuple,))
