@@ -114,9 +114,6 @@ where:
 Remove following line:
 `self.observation_space = env.observation_space`
 
-- Existing expirements configurations of the authors do not work anymore, this is because they are calling a non existing function from a library (mpi4py) that has now been updated
-    - Tried solving this by going back to older versions of that specific library, however this caused other issues. 
-
 - env.render() does not work anymore, again this is because they are calling a non existing function from a library (pyglet) that has now been updated
     - The function that is causing this issue can be found in file _env.py_  line 261:
         ```
@@ -131,7 +128,11 @@ Remove following line:
 
         Going back to older versions of the pyglet library introduced many other issues.
     
-    --> **Issue has now been fixed, use pyglet==1.5.15, arcade==2.4.2 and pymunk==5.7.0 on Python 3.9 with Rosetta Emulation for M1 Mac**
+    --> **Issue has now been fixed (see commit e986ede3d6ac8bf931fa7cc0b605e7ace9ad4ae2), use pyglet==1.5.15, arcade==2.4.2 and pymunk==5.7.0 on Python 3.9 with Rosetta Emulation for M1 Mac**
+
+- For the StaticObstacleEnv, collision with the bike was not detected and did not end the episode.
+
+    --> **Issue has been fixed (see commit d2c660a7c099445ff7e60bdc8b050bb5a880e745)**
 
 ## Powergym benchmark
 
