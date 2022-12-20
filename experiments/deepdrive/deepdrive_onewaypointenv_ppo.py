@@ -1,10 +1,7 @@
 
 from stable_baselines3 import PPO
-
 import gym
-
 import deepdrive_zero
-
 env = gym.make('deepdrive_2d-one-waypoint-v0')
 env_config = dict(
     env_name='deepdrive_2d-one-waypoint-v0',
@@ -24,8 +21,11 @@ env_config = dict(
 
 env.configure_env(env_config)
 
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10_000)
+# model = PPO("MlpPolicy", env, verbose=1)
+# model.learn(total_timesteps=10_000)
+# model.save('ppo_one-waypoint')
+
+model = PPO.load('../../saved_models/ppo_one-waypoint.zip', env=env)
 
 vec_env = model.get_env()
 obs = vec_env.reset()
@@ -35,4 +35,3 @@ for i in range(1000):
     obs, reward, done, info = vec_env.step(action)
     vec_env.render()
 
-env.close()

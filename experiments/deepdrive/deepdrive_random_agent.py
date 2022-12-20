@@ -1,5 +1,4 @@
 import gym
-
 import deepdrive_zero
 
 env = gym.make('deepdrive_2d-one-waypoint-v0')
