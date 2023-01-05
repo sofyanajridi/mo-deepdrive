@@ -104,6 +104,28 @@ where:
 - jerk_penalty = jerk treshold reached (looking at jerk between two frames)
 - lane_penalty = how far the car is outside of the lanes
 
+### Multi Objective
+
+The environment supports multi objective RL and can be configured to return a vectorized reward instead of a scalar reward.
+This can be done by configuring the env_config function of env after calling env.make() and adding the following
+property ``` multi_objective=True ```
+
+Code example:
+```
+env = gym.make('deepdrive_2d-one-waypoint-v0')
+env_config = dict(
+    env_name='deepdrive_2d-one-waypoint-v0',
+    multi_objective=True
+)
+
+obs = env.reset()
+```
+
+The benchmark has 5 objectives: distance to destination, reaching destination, gforce penalty, collision penalty,
+jerk penalty and lane penalty.
+
+As such we want to maximize the first 2 objectives and minimize the 3 last objectives.
+
 
 
 ### Setup

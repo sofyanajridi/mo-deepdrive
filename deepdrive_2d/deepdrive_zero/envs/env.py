@@ -73,6 +73,7 @@ class Deepdrive2DEnv(gym.Env):
             physics_steps_per_observation=physics_steps_per_observation,
             end_on_lane_violation=False,
             lane_margin=0,
+            multi_objective=False
         )
 
         # All units in SI units (meters and radians) unless otherwise specified

@@ -80,7 +80,8 @@ class Agent:
                  physics_steps_per_observation=None,
                  end_on_lane_violation=None,
                  discrete_actions=None,
-                 lane_margin=None,):
+                 lane_margin=None,
+                 multi_objective=None):
 
         self.env = env
 
@@ -115,6 +116,7 @@ class Agent:
         self.end_on_lane_violation = end_on_lane_violation
         self.discrete_actions = discrete_actions
         self.lane_margin = lane_margin
+        self.multi_objective = multi_objective
 
         # Map type
         self.is_one_waypoint_map: bool = env.is_one_waypoint_map
@@ -143,12 +145,13 @@ class Agent:
 
         # Static obstacle
         self.add_static_obstacle: bool = env.add_static_obstacle
-        self.static_obstacle_points: np.array = np.array([[0,0], [0,0]])
+        self.static_obstacle_points: np.array = np.array([[0, 0], [0, 0]])
         self.static_obstacle_tuple: tuple = ()
 
         # All units in meters and radians unless otherwise specified
         self.vehicle_width: float = vehicle_width
-        self.vehicle_model:List[float] = get_vehicle_model(vehicle_width)  # TODO: Use length instead. Need to retrain models to fix.
+        self.vehicle_model: List[float] = get_vehicle_model(
+            vehicle_width)  # TODO: Use length instead. Need to retrain models to fix.
         self.vehicle_length: float = vehicle_length
         if 'STRAIGHT_TEST' in os.environ:
             self.num_actions = 1  # Accel
@@ -158,9 +161,9 @@ class Agent:
 
         # Actions per second
         self.aps = self.fps / self.physics_steps_per_observation
-        
+
         self.disable_gforce_penalty = disable_gforce_penalty
-        #self.observation_space = env.observation_space
+        # self.observation_space = env.observation_space
         if self.constrain_controls:
             self.max_steer_change_per_tick = MAX_STEER_CHANGE_PER_SECOND / self.fps
             self.max_accel_change_per_tick = MAX_ACCEL_CHANGE_PER_SECOND / self.fps
@@ -225,7 +228,12 @@ class Agent:
         self.prev_steer: float = 0
         self.prev_throttle: float = 0
         self.prev_brake: float = 0
-        self.episode_reward: float = 0
+
+        if self.multi_objective:
+            self.episode_reward = np.array([0, 0, 0, 0, 0], dtype="float64")
+        else:
+            self.episode_reward: float = 0
+
         self.speed: float = 0
         self.prev_speed: float = 0
         self.episode_steps: int = 0
@@ -247,7 +255,7 @@ class Agent:
         self.gforce_levels: Box = self.blank_gforce_levels()
         self.max_gforce: float = 0
         self.max_jerk: float = 0
-        self.state_buffer: deque = deque(maxlen=math.ceil(2*self.aps))
+        self.state_buffer: deque = deque(maxlen=math.ceil(2 * self.aps))
         self.jerk: np.array = np.array((0, 0), dtype=np.float64)  # m/s^3 instantaneous, i.e. frame to frame
         self.jerk_magnitude: float = 0
         self.closest_map_index: int = 0
@@ -507,7 +515,10 @@ class Agent:
         if self.last_step_time is None:
             # init
             self.last_step_time = now
-            reward = 0
+            if self.multi_objective:
+                reward = np.array([0, 0, 0, 0, 0])
+            else:
+                reward = 0
             done = False
             observation = self.get_blank_observation()
         else:
@@ -699,7 +710,7 @@ class Agent:
             harmful_gs=False,
             jarring_gs=False,
             uncomfortable_gs=False,
-            is_blank=True,)
+            is_blank=True, )
         return ret
 
     def populate_observation(self, closest_map_point, lane_deviation,
@@ -777,7 +788,6 @@ class Agent:
         if self.incent_yield_to_oncoming_traffic:
             inputs.append(float(self.will_turn_across_opposing_lanes))
 
-
         # if is_blank:
         #     common_inputs = np.array(common_inputs) * 0
         # else:
@@ -831,7 +841,6 @@ class Agent:
         #         raise RuntimeError(f'Found NaN in observation')
         #     if -math.inf in observation or math.inf in observation:
         #         raise RuntimeError(f'Found inf in observation')
-
 
     def get_other_agent_inputs(self, is_blank=False):
 
@@ -903,7 +912,13 @@ class Agent:
         self.angle_change = 0
         self.speed = 0
         self.prev_speed = 0
-        self.episode_reward = 0
+
+        if self.multi_objective:
+            self.episode_reward = np.array([0, 0, 0, 0, 0], dtype="float64")
+
+        else:
+            self.episode_reward = 0
+
         self.episode_steps = 0
         self.distance_along_route = None
         self.distance_traveled = 0
@@ -1045,7 +1060,6 @@ class Agent:
         self.done = done
         return done, won, lost
 
-
     def get_reward(self, won: bool, lost: bool,
                    collided: bool, info: Box, steer: float,
                    accel: float, left_lane_distance: float,
@@ -1086,7 +1100,6 @@ class Agent:
         else:
             steer_penalty = 0
             accel_penalty = 0
-
 
         gforce_penalty = 0
         if not self.disable_gforce_penalty and self.gforce > 0.05:
@@ -1149,14 +1162,17 @@ class Agent:
             collision_penalty = 0
 
         win_reward = self.get_win_reward(won)
-        ret = (
-           + speed_reward
-           + win_reward
-           - gforce_penalty
-           - collision_penalty
-           - jerk_penalty
-           - lane_penalty
-        )
+
+        if self.multi_objective:
+            ret = np.array([speed_reward, win_reward, - gforce_penalty, - jerk_penalty, - lane_penalty])
+        else:
+            ret = (
+                    + speed_reward
+                    + win_reward
+                    - gforce_penalty
+                    - jerk_penalty
+                    - lane_penalty
+            )
 
         # IDEA: Induce curriculum by zeroing things like static obstacle
         # until we've learned to steer smoothly. Alternatively, we could
@@ -1267,7 +1283,7 @@ class Agent:
         a2w = self.get_angle_to_point
         wi = self.next_map_index
         mp = self.map
-        angles_ahead = [a2w(p) for p in mp.waypoints[wi:wi+2]]
+        angles_ahead = [a2w(p) for p in mp.waypoints[wi:wi + 2]]
         self.will_turn_across_opposing_lanes = False
         self.approaching_intersection = False
 
@@ -1330,14 +1346,13 @@ class Agent:
 
         return angles_ahead, left_distance, right_distance
 
-
     def get_intersection_observation2(self, half_lane_width, left_distance,
                                       right_distance):
         # TODO: Move other agent observations (like distances) here
         a2w = self.get_angle_to_point
         wi = self.next_map_index
         mp = self.map
-        angles_ahead = [a2w(p) for p in mp.waypoints[wi:wi+2]]
+        angles_ahead = [a2w(p) for p in mp.waypoints[wi:wi + 2]]
         self.will_turn_across_opposing_lanes = False
         self.approaching_intersection = False
 
@@ -1385,8 +1400,8 @@ class Agent:
                     min_left_distance = min(min_left_distance, get_lane_distance(
                         p0=diag_left_bottom,
                         p1=diag_left_top,
-                        ego_rect_pts=pt.reshape(1,2),
-                        is_left_lane_line=True,))
+                        ego_rect_pts=pt.reshape(1, 2),
+                        is_left_lane_line=True, ))
                     wp_x = mp.waypoints[0][0]
                     right_lane_x = wp_x + half_lane_width
                     min_right_distance = min(min_right_distance, right_lane_x - pt[0])
@@ -1400,8 +1415,8 @@ class Agent:
                     min_right_distance = min(min_right_distance, get_lane_distance(
                         p0=diag_right_bottom,
                         p1=diag_right_top,
-                        ego_rect_pts=pt.reshape(1,2),
-                        is_left_lane_line=False,))
+                        ego_rect_pts=pt.reshape(1, 2),
+                        is_left_lane_line=False, ))
                     wp_y = mp.waypoints[2][1]
                     bottom_lane_y = wp_y - half_lane_width
                     min_left_distance = min(min_left_distance, pt[1] - bottom_lane_y)
@@ -1424,7 +1439,7 @@ class Agent:
                 if min_left_distance != math.inf:
                     left_distance = float(min_left_distance)  # float64 causing issues?
                 if min_right_distance != math.inf:
-                    right_distance = float(min_right_distance)   # float64 causing issues?
+                    right_distance = float(min_right_distance)  # float64 causing issues?
 
                 self.will_turn_across_opposing_lanes = \
                     (inside_lower_right_half and not reached_upper_left_half)
@@ -1518,7 +1533,6 @@ class Agent:
         ret = get_angle(self.heading, front_to_point_vector)
         return ret
 
-
     def set_distance(self):
         mp = self.map
         if self.closest_map_index == self.next_map_index and \
@@ -1548,7 +1562,8 @@ class Agent:
             # [wp2dist, 0] => after waypoint 1, before waypoint 2
             # Also, for multi-agent, we need the max number of waypoints for
             # all agents which is why self.env.agents must be set
-            max_waypoints = max(len(a.map.waypoints) for a in self.env.agents)  # TODO: Avoid recalculating this - do it on last agent map gen or create env map gen
+            max_waypoints = max(len(a.map.waypoints) for a in
+                                self.env.agents)  # TODO: Avoid recalculating this - do it on last agent map gen or create env map gen
             waypoint_distances = np.zeros((max_waypoints - 1,))
             next_index = self.next_map_index
             for i in range(len(self.map.waypoints) - next_index):
@@ -1703,7 +1718,6 @@ class Agent:
         self.total_episode_time += dt * interpolation_steps
         self.env.total_episode_time += dt * interpolation_steps
 
-
         self.ego_rect, self.ego_rect_tuple = get_rect(
             self.x, self.y, self.angle, self.vehicle_width, self.vehicle_length)
 
@@ -1759,14 +1773,13 @@ class Agent:
             max_brake_change=self.max_brake_change,
             distance_traveled=self.distance_traveled,
             start_interpolation_index=start_interpolation_index,
-            interpolation_range=self.physics_steps_per_observation,)
+            interpolation_range=self.physics_steps_per_observation, )
         if self.update_intermediate_physics:
             self.physics_interpolation_state.update()
 
         if max_gforce > self.max_gforce:
             # log.warning(f'New max g {max_gforce}')
             self.max_gforce = max_gforce
-
 
     def compute_rolling_state(self):
         self.state_buffer.append(
@@ -1809,7 +1822,7 @@ class Agent:
     def convert_comfortable_actions(self, action):
         comfort_accel = 1  # Comfortable g-force is around 0.1 = 1 m/s**2
         one_degree = 0.0174533
-        steer, throttle, brake = 0,0,0
+        steer, throttle, brake = 0, 0, 0
         action = int(action)
 
         debug_agent_index = 1
@@ -1862,7 +1875,7 @@ class Agent:
         comfort_accel = 1  # Comfortable g-force is around 0.1 = 1 m/s**2
         one_degree = 0.0174533
         one_tenth_degree = one_degree / 10
-        steer, throttle, brake = 0,0,0
+        steer, throttle, brake = 0, 0, 0
         action = int(action)
         # action = 18
         debug_agent_index = 1
@@ -1920,7 +1933,7 @@ class Agent:
     def convert_comfortable_steering_actions(self, action):
         comfort_accel = 1  # Comfortable g-force is around 0.1 = 1 m/s**2
         one_degree = 0.0174533
-        steer, throttle, brake = 0,0,0
+        steer, throttle, brake = 0, 0, 0
         if action == 0:
             # Idle
             # log.debug('idle')
