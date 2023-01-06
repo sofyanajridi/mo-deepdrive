@@ -223,7 +223,7 @@ class Env(gym.Env):
         lines (dict): Dict of edges with components in circuit
         transformers (dict): Dictionary of transformers in system
     """
-    def __init__(self, folder_path, info, dss_act=False):
+    def __init__(self, folder_path, info, dss_act=False, multi_objective=False):
         super().__init__()
         self.obs = dict()
         self.dss_folder_path = os.path.join(folder_path, info['system_name'])
@@ -268,7 +268,7 @@ class Env(gym.Env):
                self.cap_num + self.reg_num + self.bat_num>=1,'invalid CRB_num'
         
         self.topology = self.build_graph()
-        self.reward_func = self.MyReward(self, info)
+        self.reward_func = self.MyReward(self, info, multi_objective)
         self.t = 0
         
         # create action space and observation space
@@ -276,6 +276,9 @@ class Env(gym.Env):
                                         (self.reg_act_num, self.bat_act_num) )
         self.action_space = self.ActionSpace.space
         self.reset_obs_space()
+
+        # multi objective support
+        self.multi_objective = multi_objective
 
     def reset_obs_space(self, wrap_observation=True, observe_load=False):
         '''
@@ -319,13 +322,17 @@ class Env(gym.Env):
         Attributes:
             env (obj): Inherits all attributes of environment 
         """
-        def __init__(self, env, info):
+        def __init__(self, env, info, multi_objective):
             self.env = env
             self.power_w = info['power_w']
             self.cap_w = info['cap_w']
             self.reg_w = info['reg_w']
             self.soc_w = info['soc_w']
             self.dis_w = info['dis_w']
+
+            # Multi objective support
+            self.multi_objective = multi_objective
+
 
         def powerloss_reward(self):
             # Penalty for power loss of entire system at one time step
@@ -364,8 +371,14 @@ class Env(gym.Env):
             p = self.powerloss_reward()
             v, vio_nodes = self.voltage_reward(record_node)
             t = self.ctrl_reward(cd, rd, soc, dis)
-            summ = p + v + t
-            
+
+            # Multi objective support
+            if self.multi_objective:
+                summ = np.array([p, v, t])
+            else:
+                summ = p + v + t
+
+
             info = dict() if not record_node else {'violated_nodes': vio_nodes}
             if full: info.update( {'power_loss_ratio':-p/self.power_w, 
                                    'vol_reward':v, 'ctrl_reward':t} )

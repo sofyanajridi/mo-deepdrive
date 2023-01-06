@@ -207,6 +207,23 @@ This means that for e.g for 13bus discrete an action consists of an array of len
 
 The reward function is a combination of three losses: voltage violation, control error, and power loss. The control error is further decomposed into capacitor's & regulator's switching cost and battery's discharge loss & soc loss. The weights among these losses depends on the circuit system and is listed in the Appendix of our paper.
 
+
+
+### Multi Objective
+
+The environment supports multi objective RL and can be configured to return a vectorized reward instead of a scalar reward.
+This can be done by setting the multi_objective property to true whenever creating an environment.
+
+Code example:
+```
+env = make_env('13Bus', multi_objective=True)
+obs = env.reset()
+```
+
+The benchmark has 3 objectives: power loss, voltage violation and control error
+
+As these are all losses, we want to minimize all 3 objectives.
+
 ### Setup
 
 ### Bugs and issues
