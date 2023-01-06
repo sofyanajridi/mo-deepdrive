@@ -117,6 +117,7 @@ env_config = dict(
     env_name='deepdrive_2d-one-waypoint-v0',
     multi_objective=True
 )
+env.configure_env(env_config)
 
 obs = env.reset()
 ```
