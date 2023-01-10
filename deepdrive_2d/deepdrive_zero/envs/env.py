@@ -23,7 +23,7 @@ from deepdrive_2d.deepdrive_zero.logs import log
 
 
 class Deepdrive2DEnv(gym.Env):
-    metadata = {'render.modes': ['human']}
+    metadata = {'render_modes': ['human']}
     is_deepdrive = True
 
     def __init__(self,
@@ -126,6 +126,9 @@ class Deepdrive2DEnv(gym.Env):
         self.being_played = being_played
         self.update_intermediate_physics = self.should_render or self.being_played
         self.render_choppy_but_realtime = False
+        # Multi-objective support
+        self.multi_objective = False
+
         # End env config -------------------------------------------------------
 
         # Env state ------------------------------------------------------------
@@ -203,6 +206,9 @@ class Deepdrive2DEnv(gym.Env):
         self.all_agents = self.agents + self.dummy_accel_agents
         self.num_agents = len(self.agents)
         self.discrete_actions = self.env_config['discrete_actions']
+
+        # Multi-objective support
+        self.multi_objective = self.env_config['multi_objective']
         self.physics_steps_per_observation = env_config['physics_steps_per_observation']
 
         if '--no-timeout' in sys.argv:
@@ -253,6 +259,11 @@ class Deepdrive2DEnv(gym.Env):
             self.action_space = spaces.Box(low=-10.2, high=10.2, shape=(agent.num_actions,))
         blank_obz = agent.get_blank_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(blank_obz),))
+
+        # Multi objective support
+        if self.multi_objective:
+            self.reward_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,))
+
 
     def _enable_render(self):
         from deepdrive_2d.deepdrive_zero import player
