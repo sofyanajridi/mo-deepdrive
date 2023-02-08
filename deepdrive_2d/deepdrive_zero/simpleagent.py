@@ -1,3 +1,3 @@
-import gym
+import gymnasium as gym
 
 env = gym.make("deepdrive_2d-one-waypoint-steer-only-v0")

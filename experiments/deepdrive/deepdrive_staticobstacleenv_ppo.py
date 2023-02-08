@@ -6,9 +6,9 @@ import deepdrive_zero
 
 
 
-env = gym.make('deepdrive_2d-static-obstacle-60-fps-v0')
+env = gym.make('deepdrive_2d-static-obstacle-v0')
 env_config = dict(
-    env_name='deepdrive_2d-static-obstacle-60-fps-v0',
+    env_name='deepdrive_2d-static-obstacle-v0',
     is_intersection_map=False,
     expect_normalized_action_deltas=False,
     jerk_penalty_coeff=0,
@@ -17,13 +17,16 @@ env_config = dict(
     incent_win=True,
     constrain_controls=False,
     collision_penalty_coeff=1,
+    add_static_obstacle=True,
+    multi_objective=True
 )
 env.configure_env(env_config)
 model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10_000)
-# model.save("ppo_static-obstacle")
+model.learn(total_timesteps=1000)
+# # model.save("ppo_static-obstacle")
 
-# model = PPO.load('saved_models/ppo_static-obstacle.zip',env=env)
+# model = PPO.load('../../saved_models/ppo_static-obstacle.zip',env=env)
+
 
 
 vec_env = model.get_env()
