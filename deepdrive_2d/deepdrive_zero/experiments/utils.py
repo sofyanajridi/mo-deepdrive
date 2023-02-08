@@ -1,6 +1,6 @@
 import sys
 
-import gym
+import gymnasium as gym
 
 from spinup.utils.test_policy import load_policy_and_env, run_policy
 

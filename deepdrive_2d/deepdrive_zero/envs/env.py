@@ -5,15 +5,16 @@ from copy import deepcopy
 from inspect import signature
 from typing import Tuple, List
 import random
-import gym
+import gymnasium as gym
 import numpy as np
 from box import Box
-from gym import spaces
+from gymnasium import spaces
+from typing import Optional
 
 import pyglet
 
 from deepdrive_2d.deepdrive_zero.envs.agent import Agent
-from deepdrive_2d.deepdrive_zero.physics.collision_detection import check_collision_ego_obj,\
+from deepdrive_2d.deepdrive_zero.physics.collision_detection import check_collision_ego_obj, \
     check_collision_agents
 from deepdrive_2d.deepdrive_zero.constants import USE_VOYAGE, MAP_WIDTH_PX, MAP_HEIGHT_PX, \
     SCREEN_MARGIN, VEHICLE_LENGTH, VEHICLE_WIDTH, PX_PER_M, \
@@ -27,6 +28,7 @@ class Deepdrive2DEnv(gym.Env):
     is_deepdrive = True
 
     def __init__(self,
+                 render_mode: None,
                  px_per_m=PX_PER_M,
                  add_rotational_friction=True,
                  add_longitudinal_friction=True,
@@ -44,12 +46,15 @@ class Deepdrive2DEnv(gym.Env):
                  add_static_obstacle=False,
                  disable_gforce_penalty=False,
                  forbid_deceleration=False,
-                 being_played=False,):
+                 being_played=False,
+                 env_configuration=None
+                 ):
+        # Support for Gymnasium
+        self.render_mode = render_mode
 
         self.logger = log
 
         log.info(f'{sys.executable} {sys.argv}')
-
 
         # Env config -----------------------------------------------------------
         self.env_config = dict(
@@ -148,6 +153,8 @@ class Deepdrive2DEnv(gym.Env):
         self.last_step_output = None
         # End env state --------------------------------------------------------
 
+        self.configure_env(env_configuration)
+
     def get_state(self):
         return (self.episode_steps,
                 self.num_episodes,
@@ -184,12 +191,12 @@ class Deepdrive2DEnv(gym.Env):
         # Pass env config params to agent if they are arguments to agent
         # constructor. # TODO: Move to an agent section of the config.
         agent_params = signature(Agent).parameters.keys()
-        agent_config = {k: v for k,v in self.env_config.items() if k in agent_params}
+        agent_config = {k: v for k, v in self.env_config.items() if k in agent_params}
         self.agents: List[Agent] = [Agent(
-                env=self,
-                agent_index=i,
-                disable_gforce_penalty=self.disable_gforce_penalty,
-                **agent_config)
+            env=self,
+            agent_index=i,
+            disable_gforce_penalty=self.disable_gforce_penalty,
+            **agent_config)
             for i in range(self.num_agents)]
 
         dummies = self.env_config['dummy_accel_agent_indices']
@@ -197,10 +204,10 @@ class Deepdrive2DEnv(gym.Env):
             self.dummy_accel_agent_indices = dummies
 
         self.dummy_accel_agents: List[Agent] = [Agent(
-                env=self,
-                agent_index=i,
-                disable_gforce_penalty=self.disable_gforce_penalty,
-                **agent_config)
+            env=self,
+            agent_index=i,
+            disable_gforce_penalty=self.disable_gforce_penalty,
+            **agent_config)
             for i in self.dummy_accel_agent_indices]
 
         self.all_agents = self.agents + self.dummy_accel_agents
@@ -222,8 +229,8 @@ class Deepdrive2DEnv(gym.Env):
             max_seconds = 60
 
         self._max_episode_steps = (max_seconds *
-                                   1/self.target_dt *
-                                   1/self.physics_steps_per_observation)
+                                   1 / self.target_dt *
+                                   1 / self.physics_steps_per_observation)
 
         self.reset()
         self.setup_spaces()
@@ -258,12 +265,11 @@ class Deepdrive2DEnv(gym.Env):
             # TODO: Set steering limits as well
             self.action_space = spaces.Box(low=-10.2, high=10.2, shape=(agent.num_actions,))
         blank_obz = agent.get_blank_observation()
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(blank_obz),))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(blank_obz),), dtype=np.float32)
 
         # Multi objective support
         if self.multi_objective:
             self.reward_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,))
-
 
     def _enable_render(self):
         from deepdrive_2d.deepdrive_zero import player
@@ -278,19 +284,23 @@ class Deepdrive2DEnv(gym.Env):
         # for window in app.windows:
         #     window.switch_to()
         #     window.dispatch_pending_events()
-        #pyglet.app.event_loop.run()
+        # pyglet.app.event_loop.run()
         pyglet.app.platform_event_loop.start()
         pyglet.app.event_loop.dispatch_event('on_enter')
         pyglet.app.event_loop.is_running = True
 
         self.should_render = True
 
-    def reset(self):
+    def reset(self,
+              *,
+              seed: Optional[int] = None,
+              options: Optional[dict] = None,
+              ):
         self.curr_reward = 0
         self.total_episode_time = 0
         if self.agent_step_outputs:
             # Just reset the current agent
-            return self.agents[self.agent_index].reset()
+            return np.array(self.agents[self.agent_index].reset(), dtype=np.float32), {}
         else:
             # First reset, reset entire env
             self.episode_steps = 0
@@ -302,11 +312,19 @@ class Deepdrive2DEnv(gym.Env):
             for agent in self.dummy_accel_agents:
                 agent.reset()
 
-        return self.get_blank_observation()
+        # Support for Gymnasium
+        if self.render_mode == "human":
+            self.render()
 
-    def seed(self, seed=None):
         self.seed_value = seed or 0
         random.seed(seed)
+
+        return np.array(self.get_blank_observation(), dtype=np.float32), {}
+
+    # Gymnasium update
+    # def seed(self, seed=None):
+    #     self.seed_value = seed or 0
+    #     random.seed(seed)
 
     @log.catch(reraise=True)
     def step(self, action):
@@ -319,7 +337,16 @@ class Deepdrive2DEnv(gym.Env):
         if step_out == PARTIAL_PHYSICS_STEP:
             return step_out
         ret = self.finish_step()
-        return ret
+
+        # Support for Gymnasium
+        if self.render_mode == "human":
+            self.render()
+
+        obs, reward, done, info = ret
+        terminated = done
+        truncated = False
+
+        return np.array(obs, dtype=np.float32), reward, terminated, truncated, info
 
     def finish_step(self):
         agent = self.agents[self.agent_index]
@@ -398,7 +425,10 @@ class Deepdrive2DEnv(gym.Env):
     def get_blank_observation(self):
         return self.agents[0].get_blank_observation()
 
-    def render(self, mode='human'):
+    def render(self):
+        # Support for Gymnasium
+        mode = self.render_mode
+        # -----------------------
         if not self._has_enabled_render:
             self._enable_render()
             self._has_enabled_render = True
@@ -421,7 +451,6 @@ class Deepdrive2DEnv(gym.Env):
             if self.render_choppy_but_realtime:
                 time.sleep(self.num_agents * self.target_dt)
 
-
     def render_one_frame(self):
         platform_event_loop = pyglet.app.platform_event_loop
         pyglet_event_loop = pyglet.app.event_loop
@@ -441,7 +470,7 @@ class Deepdrive2DEnv(gym.Env):
             return False
         elif self.add_static_obstacle:
             for agent in self.agents:
-                if check_collision_ego_obj(agent.ego_rect_tuple,obj2=(agent.static_obstacle_tuple,)):
+                if check_collision_ego_obj(agent.ego_rect_tuple, obj2=(agent.static_obstacle_tuple,)):
                     agent.collided_with = [1]
                 return check_collision_ego_obj(
                     agent.ego_rect_tuple,
@@ -450,10 +479,8 @@ class Deepdrive2DEnv(gym.Env):
             return check_collision_agents(self.all_agents)
 
 
-
 def main():
-    env = Deepdrive2DEnv()
-
+    env = Deepdrive2DEnv(render_mode="human")
 
 
 if __name__ == '__main__':
