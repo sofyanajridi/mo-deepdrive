@@ -13,3 +13,6 @@ class V26toV21Wrapper(gym.Wrapper):
     def reset(self):
         observation, info = self.env.reset()
         return observation
+
+    def render(self, mode="human"):
+        self.env.render()

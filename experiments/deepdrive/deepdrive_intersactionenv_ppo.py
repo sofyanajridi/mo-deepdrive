@@ -1,11 +1,7 @@
 import gymnasium as gym
 from gymnasium.wrappers import StepAPICompatibility
 import deepdrive_zero
-
 from deepdrive_zero.v26_To_V21Wrapper import V26toV21Wrapper
-
-
-
 import sys
 sys.modules["gym"] = gym
 from stable_baselines3 import PPO
@@ -22,28 +18,21 @@ env_config = dict(
     collision_penalty_coeff=1,
 )
 
-env = gym.make('deepdrive_2d-intersection-w-gs-allow-decel-v0', env_configuration=env_config,render_mode="human")
-# env = StepAPICompatibility(env, output_truncation_bool=False)
+env = gym.make('deepdrive_2d-intersection-w-gs-allow-decel-v0', env_configuration=env_config, render_mode=None)
 env = V26toV21Wrapper(env)
 
-obs = env.reset()
-
-
-
-# env.configure_env(env_config)
 model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10)
+model.learn(total_timesteps=100_000)
 # model.save("ppo_intersection")
-
-# model = PPO.load('../../saved_models/ppo_intersection.zip', env=env)
-# model.learn(total_timesteps=10)
-
 
 vec_env = env
 obs = vec_env.reset()
 
-for i in range(1000):
-    action, _states = model.predict(obs, deterministic=True)
-    obs, reward, done, info = vec_env.step(action)
-    vec_env.render()
+for i in range(10):
+    done = False
+    obs = vec_env.reset()
+    while not done:
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, done, info = vec_env.step(action)
+        vec_env.render()
 
