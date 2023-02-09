@@ -8,9 +8,9 @@
 ## Deepdrive benchmark
 
 ### Environment variations
-![IntersactionEnv](/images/IntersactionEnv.png "IntersactionEnv")
-![IntersactionEnv](/images/StaticObstacleEnv.png "IntersactionEnv")
-![IntersactionEnv](/images/OneWayPointEnv.png "IntersactionEnv")
+![IntersactionEnv](/momarl_benchmarks/images/IntersactionEnv.png "IntersactionEnv")
+![IntersactionEnv](/momarl_benchmarks/images/StaticObstacleEnv.png "IntersactionEnv")
+![IntersactionEnv](/momarl_benchmarks/images/OneWayPointEnv.png "IntersactionEnv")
 
 
 1. Multi Agent Intersaction Env
@@ -161,7 +161,7 @@ Remove following line:
 
 ### Environment variations
 
-![13busEnv](/images/13busEnv.png "13busEnv")
+![13busEnv](/momarl_benchmarks/images/13busEnv.png "13busEnv")
 
 Example of a 13bus env
 
