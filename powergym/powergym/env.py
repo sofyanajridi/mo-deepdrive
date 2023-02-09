@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: MIT
 
 import os
-import gym
+import gymnasium as gym
 import numpy as np
 from powergym.powergym.circuit import Circuits
 from powergym.powergym.loadprofile import LoadProfile
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
+from typing import Optional
 
 #### helper functions ####
 
@@ -461,21 +462,31 @@ class Env(gym.Env):
                       'av_soc_err': sum(soc_errs)/(self.bat_num+1e-10),
                       'av_soc': sum([soc for soc, _ in bat_statuses.values()])/ \
                                    (self.bat_num+1e-10)  })
+
+        terminated = done
+        truncated = False
         
         if self.wrap_observation:
-            return self.wrap_obs(self.obs), reward, done, info
+            return self.wrap_obs(self.obs), reward, terminated, truncated, info
         else:
-            return self.obs, reward, done, info
+            return self.obs, reward, terminated, truncated, info
 
-    def reset(self, load_profile_idx=0):
+    def reset(self, load_profile_idx=0,*,
+              seed: Optional[int] = None,
+              options: Optional[dict] = None,
+              ):
         """Reset state of enviroment for new episode
         
         Args:
             load_profile_idx (int, optional): ID number for load profile
-        
+            seed (int, optional) : The seed that is used to initialize the environment’s PRNG
+            options (dict, optional): Additional information to specify how the environment is reset (Not implemented in this env)
         Returns:
             numpy array: wrapped observation
         """
+        ### Set seed (v26 Gym API change)
+        self.ActionSpace.seed(seed)
+
         ###reset time
         self.t = 0
  
@@ -518,10 +529,11 @@ class Env(gym.Env):
         ### Edge weight
         #self.obs['Y_matrix'] = self.circuit.edge_weight
 
+
         if self.wrap_observation:
-            return self.wrap_obs(self.obs)
+            return self.wrap_obs(self.obs), {}
         else:
-            return self.obs
+            return self.obs, {}
     
     def dss_step(self):
         assert self.circuit.dss_act == True, 'Env.circuit.dss_act must be True'
@@ -762,8 +774,8 @@ class Env(gym.Env):
 
         return fig, pos
 
-    def seed(self, seed):
-        self.ActionSpace.seed(seed)
+    # def seed(self, seed):
+    #     self.ActionSpace.seed(seed)
 
     def random_action(self):
         """Samples random action

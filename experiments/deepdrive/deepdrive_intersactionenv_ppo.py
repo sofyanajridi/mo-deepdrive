@@ -1,7 +1,6 @@
 import gymnasium as gym
-from gymnasium.wrappers import StepAPICompatibility
 import deepdrive_zero
-from deepdrive_zero.v26_To_V21Wrapper import V26toV21Wrapper
+from EnvWrappers.v26ToV21Wrapper import V26toV21Wrapper
 import sys
 sys.modules["gym"] = gym
 from stable_baselines3 import PPO
