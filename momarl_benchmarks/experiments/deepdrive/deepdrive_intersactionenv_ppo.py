@@ -1,5 +1,6 @@
 import gymnasium as gym
 from momarl_benchmarks.wrappers.v26ToV21Wrapper import V26toV21Wrapper
+from deepdrive_2d.deepdrive_zero.envs.variants import IntersectionWithGsAllowDecelEnv
 import sys
 sys.modules["gym"] = gym
 from stable_baselines3 import PPO
@@ -16,11 +17,11 @@ env_config = dict(
     collision_penalty_coeff=1,
 )
 
-env = gym.make('deepdrive_2d-intersection-w-gs-allow-decel-v0', env_configuration=env_config, render_mode=None)
+env = IntersectionWithGsAllowDecelEnv(env_configuration=env_config, render_mode=None)
 env = V26toV21Wrapper(env)
 
 model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=100_000)
+model.learn(total_timesteps=1_000)
 # model.save("ppo_intersection")
 
 vec_env = env

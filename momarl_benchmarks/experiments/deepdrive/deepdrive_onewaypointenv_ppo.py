@@ -20,7 +20,6 @@ env_config = dict(
     incent_yield_to_oncoming_traffic=True,
     physics_steps_per_observation=12,
 )
-# env = gym.make('deepdrive_2d-one-waypoint-v0', env_configuration=env_config, render_mode=None)
 env = OneWaypointEnv(env_configuration=env_config, render_mode=None)
 env = V26toV21Wrapper(env)
 
