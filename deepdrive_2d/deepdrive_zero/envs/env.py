@@ -461,8 +461,10 @@ class Deepdrive2DEnv(gym.Env):
 
     def close(self):
         if self.should_render:
+
             pyglet.app.is_running = False
-            pyglet.app.dispatch_event('on_exit')
+            pyglet.app.event_loop.dispatch_event('on_exit')
+            # pyglet.app.dispatch_event('on_exit')
             pyglet.app.platform_event_loop.stop()
 
     def check_for_collisions(self):
