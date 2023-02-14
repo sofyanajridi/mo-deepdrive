@@ -17,7 +17,7 @@ env_config = dict(
     collision_penalty_coeff=1,
 )
 
-env = IntersectionWithGsAllowDecelEnv(env_configuration=env_config, render_mode=None)
+env = IntersectionWithGsAllowDecelEnv(env_configuration=env_config)
 env = V26toV21Wrapper(env)
 
 model = PPO("MlpPolicy", env, verbose=1)
