@@ -15,13 +15,15 @@ class MultiAgentDeepdriveParallelWrapper(MultiAgentEnv):
     metadata = {'render_modes': ['human']}
     render_mode = 'human'
 
-    def __init__(self, env: Deepdrive2DEnv):
+    def __init__(self, env: Deepdrive2DEnv, vehicle_1_id="vehicle1", vehicle_2_id="vehicle2"):
         super().__init__()
         self.deepdrive_env = env
-        self.vehicle_1_id = "vehicle1"
-        self.vehicle_2_id = "vehicle2"
+        self.vehicle_1_id = vehicle_1_id
+        self.vehicle_2_id = vehicle_2_id
         self.observation_space = env.observation_space
         self.action_space = env.action_space
+        self.observation_space_dict = {vehicle_1_id: env.observation_space, vehicle_2_id: env.observation_space}
+        self.action_space_dict = {vehicle_1_id: env.action_space, vehicle_2_id: env.action_space}
 
     def reset(self, *, seed=None, options=None):
 
