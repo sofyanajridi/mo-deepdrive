@@ -60,9 +60,9 @@ class Deepdrive2DEnv(gym.Env):
         self.env_config = dict(
             jerk_penalty_coeff=0.10,
             gforce_penalty_coeff=0.031,
-            lane_penalty_coeff=0.02,
+            lane_penalty_coeff=1,
             collision_penalty_coeff=0.31,
-            speed_reward_coeff=0.50,
+            speed_reward_coeff=1,
             win_coefficient=1,
             gforce_threshold=1,
             jerk_threshold=None,
@@ -269,7 +269,7 @@ class Deepdrive2DEnv(gym.Env):
 
         # Multi objective support
         if self.multi_objective:
-            self.reward_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,))
+            self.reward_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,))
 
     def _enable_render(self):
         from deepdrive_2d.deepdrive_zero import player
