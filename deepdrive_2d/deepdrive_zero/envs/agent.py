@@ -230,7 +230,7 @@ class Agent:
         self.prev_brake: float = 0
 
         if self.multi_objective:
-            self.episode_reward = np.array([0, 0, 0, 0, 0], dtype="float64")
+            self.episode_reward = np.array([0, 0, 0, 0, 0, 0], dtype="float64")
         else:
             self.episode_reward: float = 0
 
@@ -516,7 +516,7 @@ class Agent:
             # init
             self.last_step_time = now
             if self.multi_objective:
-                reward = np.array([0, 0, 0, 0, 0])
+                reward = np.array([0, 0, 0, 0, 0, 0])
             else:
                 reward = 0
             done = False
@@ -581,24 +581,44 @@ class Agent:
             episode_angle_accuracy = np.array(self.angle_accuracies).mean()
             episode_gforce_avg = np.array(self.episode_gforces).mean()
             episode_jerk_avg = np.array(self.episode_jerks).mean()
-            log.debug(f'Score {round(self.episode_reward, 2)}, '
-                      f'Rew/Step: {self.episode_reward / self.episode_steps}, '
-                      f'Steps: {self.episode_steps}, '
-                      # f'Closest map indx: {self.closest_map_index}, '
-                      f'Distance {round(self.distance_along_route, 2)}, '
-                      # f'Wp {self.next_map_index - 1}, '
-                      f'Angular velocity {round(self.angular_velocity, 2)}, '
-                      f'Speed: {round(self.speed, 2)}, '
-                      f'Max gforce: {round(self.max_gforce, 4)}, '
-                      f'Avg gforce: {round(episode_gforce_avg, 4)}, '
-                      f'Max jerk: {round(self.max_jerk, 4)}, '
-                      f'Avg jerk: {round(episode_jerk_avg, 4)}, '
-                      # f'Trip pct {round(self.trip_pct, 2)}, '
-                      f'Angle accuracy {round(episode_angle_accuracy, 2)}, '
-                      f'Agent index {round(self.agent_index, 2)}, '
-                      f'Total steps {self.total_steps}, '
-                      f'Env ep# {self.env.num_episodes}, '
-                      f'Ep# {self.num_episodes}')
+            if self.multi_objective:
+                log.debug(f'Score {self.episode_reward}, '
+                          f'Rew/Step: {self.episode_reward / self.episode_steps}, '
+                          f'Steps: {self.episode_steps}, '
+                          # f'Closest map indx: {self.closest_map_index}, '
+                          f'Distance {round(self.distance_along_route, 2)}, '
+                          # f'Wp {self.next_map_index - 1}, '
+                          f'Angular velocity {round(self.angular_velocity, 2)}, '
+                          f'Speed: {round(self.speed, 2)}, '
+                          f'Max gforce: {round(self.max_gforce, 4)}, '
+                          f'Avg gforce: {round(episode_gforce_avg, 4)}, '
+                          f'Max jerk: {round(self.max_jerk, 4)}, '
+                          f'Avg jerk: {round(episode_jerk_avg, 4)}, '
+                          # f'Trip pct {round(self.trip_pct, 2)}, '
+                          f'Angle accuracy {round(episode_angle_accuracy, 2)}, '
+                          f'Agent index {round(self.agent_index, 2)}, '
+                          f'Total steps {self.total_steps}, '
+                          f'Env ep# {self.env.num_episodes}, '
+                          f'Ep# {self.num_episodes}')
+            else:
+                log.debug(f'Score {round(self.episode_reward, 2)}, '
+                          f'Rew/Step: {self.episode_reward / self.episode_steps}, '
+                          f'Steps: {self.episode_steps}, '
+                          # f'Closest map indx: {self.closest_map_index}, '
+                          f'Distance {round(self.distance_along_route, 2)}, '
+                          # f'Wp {self.next_map_index - 1}, '
+                          f'Angular velocity {round(self.angular_velocity, 2)}, '
+                          f'Speed: {round(self.speed, 2)}, '
+                          f'Max gforce: {round(self.max_gforce, 4)}, '
+                          f'Avg gforce: {round(episode_gforce_avg, 4)}, '
+                          f'Max jerk: {round(self.max_jerk, 4)}, '
+                          f'Avg jerk: {round(episode_jerk_avg, 4)}, '
+                          # f'Trip pct {round(self.trip_pct, 2)}, '
+                          f'Angle accuracy {round(episode_angle_accuracy, 2)}, '
+                          f'Agent index {round(self.agent_index, 2)}, '
+                          f'Total steps {self.total_steps}, '
+                          f'Env ep# {self.env.num_episodes}, '
+                          f'Ep# {self.num_episodes}')
         self.total_steps += 1
         self.set_calculated_props()
         ret = observation, reward, done, info.to_dict()
@@ -914,7 +934,7 @@ class Agent:
         self.prev_speed = 0
 
         if self.multi_objective:
-            self.episode_reward = np.array([0, 0, 0, 0, 0], dtype="float64")
+            self.episode_reward = np.array([0, 0, 0, 0, 0, 0], dtype="float64")
 
         else:
             self.episode_reward = 0
@@ -1164,12 +1184,13 @@ class Agent:
         win_reward = self.get_win_reward(won)
 
         if self.multi_objective:
-            ret = np.array([speed_reward, win_reward, - gforce_penalty, - jerk_penalty, - lane_penalty])
+            ret = np.array([speed_reward, win_reward, self.gforce, collision_penalty, self.jerk_magnitude, lane_penalty])
         else:
             ret = (
                     + speed_reward
                     + win_reward
                     - gforce_penalty
+                    - collision_penalty
                     - jerk_penalty
                     - lane_penalty
             )
@@ -1994,7 +2015,6 @@ def get_static_obst(m, x, y):
     # rand_vals = np.random.rand(2)
     x_dist = x[1] - x[0]
     y_dist = y[1] - y[0]
-
     total_dist = np.linalg.norm([x_dist, y_dist])
     center_dist = np.random.rand() * total_dist * 0.6 + 0.1
     theta = np.arctan(y_dist / x_dist)
