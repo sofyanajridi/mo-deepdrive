@@ -37,5 +37,7 @@ for i in range(10):
     while not done:
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = vec_env.step(action)
-        vec_env.render()
+
+        print(reward)
+
 

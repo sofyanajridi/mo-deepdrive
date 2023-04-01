@@ -1,5 +1,7 @@
 import gymnasium as gym
 from momarl_benchmarks.wrappers.v26ToV21Wrapper import V26toV21Wrapper
+from momarl_benchmarks.wrappers.v26ToV21Wrapper import V26toV21Wrapper
+from deepdrive_2d.deepdrive_zero.envs.variants import StaticObstacleEnv
 import sys
 sys.modules["gym"] = gym
 from stable_baselines3 import PPO
@@ -20,11 +22,11 @@ env_config = dict(
 )
 
 
-env = gym.make('deepdrive_2d-static-obstacle-v0', env_configuration=env_config, render_mode=None)
+env = StaticObstacleEnv(env_configuration=env_config, render_mode=None)
 env = V26toV21Wrapper(env)
 
 model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10_000)
+model.learn(total_timesteps=50_000)
 
 
 vec_env = env
@@ -36,5 +38,5 @@ for i in range(10):
     while not done:
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = vec_env.step(action)
-        vec_env.render()
+        env.render()
 
