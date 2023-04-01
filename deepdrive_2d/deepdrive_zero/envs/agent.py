@@ -81,7 +81,9 @@ class Agent:
                  end_on_lane_violation=None,
                  discrete_actions=None,
                  lane_margin=None,
-                 multi_objective=None):
+                 multi_objective=None,
+                 deterministic=None
+                 ):
 
         self.env = env
 
@@ -89,7 +91,11 @@ class Agent:
         self.dt = env.target_dt
         self.agent_index = agent_index
         self.match_angle_only = match_angle_only
-        self.static_map = static_map
+        self.deterministic = deterministic
+        if self.deterministic:
+            self.static_map = deterministic
+        else:
+            self.static_map = static_map
         self.add_rotational_friction = add_rotational_friction
         self.add_longitudinal_friction = add_longitudinal_friction
         self.expect_normalized_actions: bool = env.expect_normalized_actions

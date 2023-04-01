@@ -78,7 +78,8 @@ class Deepdrive2DEnv(gym.Env):
             physics_steps_per_observation=physics_steps_per_observation,
             end_on_lane_violation=False,
             lane_margin=0,
-            multi_objective=False
+            multi_objective=False,
+            deterministic=False
         )
 
         # All units in SI units (meters and radians) unless otherwise specified
@@ -133,6 +134,7 @@ class Deepdrive2DEnv(gym.Env):
         self.render_choppy_but_realtime = False
         # Multi-objective support
         self.multi_objective = False
+        self.deterministic = False
 
         # End env config -------------------------------------------------------
 
@@ -216,6 +218,7 @@ class Deepdrive2DEnv(gym.Env):
 
         # Multi-objective support
         self.multi_objective = self.env_config['multi_objective']
+        self.deterministic = self.env_config['deterministic']
         self.physics_steps_per_observation = env_config['physics_steps_per_observation']
 
         if '--no-timeout' in sys.argv:
