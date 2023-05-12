@@ -58,10 +58,10 @@ class Deepdrive2DEnv(gym.Env):
 
         # Env config -----------------------------------------------------------
         self.env_config = dict(
-            jerk_penalty_coeff=0.10,
-            gforce_penalty_coeff=0.031,
+            jerk_penalty_coeff=1,
+            gforce_penalty_coeff=1,
             lane_penalty_coeff=1,
-            collision_penalty_coeff=0.31,
+            collision_penalty_coeff=1,
             speed_reward_coeff=1,
             win_coefficient=1,
             gforce_threshold=1,
