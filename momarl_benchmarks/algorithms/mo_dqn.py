@@ -9,7 +9,12 @@ import torch.nn.functional as F
 import numpy as np
 import inspect
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'accrued_reward', 'done'))
@@ -74,12 +79,13 @@ class MODQN:
             device)
         self.target_nn.load_state_dict(self.policy_nn.state_dict())
         self.optimizer = optim.AdamW(self.policy_nn.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayMemory(10000)
+        self.memory = ReplayMemory(5000)
         self.eps_end = 0.05
         self.eps_start = 0.9
         self.eps_decay = 1000
         self.utility_f = utility_f
         self.steps_done = 0
+        self.num_param_updates = 0
 
 
     def calculate_utilities_batch(self, total_rewards):
@@ -100,7 +106,7 @@ class MODQN:
         self.steps_done += 1
         if sample > eps_threshold:
             with torch.no_grad():
-                accrued_reward = torch.tensor(accrued_reward, dtype=torch.float32)
+                accrued_reward = torch.tensor(accrued_reward, dtype=torch.float32,device=device)
                 augmented_state = torch.cat((state, accrued_reward.unsqueeze(0)), dim=1)
                 multi_obj_state_action_value = self.policy_nn(augmented_state).view(self.n_actions, self.n_objectives)
                 total_reward = multi_obj_state_action_value + accrued_reward
@@ -144,16 +150,23 @@ class MODQN:
             expected_mutli_objective_state_action_values = reward_batch + (
                         next_state_values * self.gamma) * ~done_batch.unsqueeze(1)
 
-        # Compute Huber loss
-        criterion = nn.SmoothL1Loss()
+        # loss
+        criterion = nn.HuberLoss()
         loss = criterion(multi_objective_state_action_values, expected_mutli_objective_state_action_values)
 
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
         # In-place gradient clipping
+        # for param in self.policy_nn.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+
+
         torch.nn.utils.clip_grad_value_(self.policy_nn.parameters(), 100)
         self.optimizer.step()
+
+        # Soft update of the target network's weights
+        # θ′ ← τ θ + (1 −τ )θ′
 
     def target_nn_soft_weights_update(self):
         target_net_state_dict = self.target_nn.state_dict()
@@ -176,11 +189,11 @@ class MODQN:
         }
         print(f"Hyperparameters: {config}")
         import wandb
-        wandb.init(project="momarl-benchmarks", name=wandb_name, config=config,
+        wandb.init(project="momarl-benchmarks-test", name=wandb_name, config=config,
                    group=wandb_group_name, mode=enable_wandb_logging)
 
 
-        STATS_EVERY = 5
+        STATS_EVERY = 1
         ep_rewards = []
         aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
         for episode in range(nr_episodes):
@@ -189,30 +202,31 @@ class MODQN:
             obs, info = self.env.reset()
             obs = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
             accrued_reward = np.zeros(self.n_objectives)
-            episode_reward = 0
+            episode_reward = np.zeros(self.n_objectives)
 
             while not done:
                 action = self.select_action(obs, accrued_reward)
                 next_obs, reward, terminated, truncated, _ = self.env.step(action.item())
-                episode_reward += self.utility_f(reward)
-                accrued_reward = accrued_reward + reward
+                episode_reward += reward
                 accrued_reward_tensor = torch.tensor(accrued_reward, dtype=torch.float32, device=device).unsqueeze(0)
-                reward = torch.tensor(reward, dtype=torch.float32, device=device).unsqueeze(0)
+                reward_tensor = torch.tensor(reward, dtype=torch.float32, device=device).unsqueeze(0)
                 next_obs = torch.tensor(next_obs, dtype=torch.float32, device=device).unsqueeze(0)
                 done = terminated
                 done = torch.tensor([done], device=device)
 
-                self.memory.push(obs, action, next_obs, reward, accrued_reward_tensor, done)
+                self.memory.push(obs, action, next_obs, reward_tensor, accrued_reward_tensor, done)
+
 
                 obs = next_obs
+                accrued_reward = accrued_reward + reward
+
 
                 self.optimize_model()
 
-                # Soft update of the target network's weights
-                # θ′ ← τ θ + (1 −τ )θ′
                 self.target_nn_soft_weights_update()
 
-            ep_rewards.append(episode_reward)
+
+            ep_rewards.append(self.utility_f(episode_reward))
             if not episode % STATS_EVERY:
                 average_reward = sum(ep_rewards[-STATS_EVERY:]) / STATS_EVERY
                 aggr_ep_rewards['ep'].append(episode)
@@ -220,7 +234,7 @@ class MODQN:
                 aggr_ep_rewards['max'].append(max(ep_rewards[-STATS_EVERY:]))
                 aggr_ep_rewards['min'].append(min(ep_rewards[-STATS_EVERY:]))
                 wandb.log({'ep': episode, 'avg_reward': average_reward, 'max_reward': max(ep_rewards[-STATS_EVERY:]), 'min_reward': min(ep_rewards[-STATS_EVERY:])})
-                print(f'Episode: {episode:>5d}, average reward: {average_reward:>4.1f}')
+                print(f'Episode: {episode:>5d}, average reward: {average_reward}')
         if enable_plot:
             plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['avg'], label="average rewards")
             plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['max'], label="max rewards")
