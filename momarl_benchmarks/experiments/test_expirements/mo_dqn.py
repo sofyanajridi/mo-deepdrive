@@ -19,8 +19,8 @@ from deepdrive_2d.deepdrive_zero.discrete.comfortable_actions2 import COMFORTABL
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-from loguru import logger
-logger.stop()
+# from loguru import logger
+# logger.stop()
 
 
 
@@ -57,9 +57,9 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, 512)
+        self.layer2 = nn.Linear(512, 512)
+        self.layer3 = nn.Linear(512, n_actions)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -72,15 +72,24 @@ class DQN(nn.Module):
 
 
 # Hyperparameters
-BATCH_SIZE = 128 #128
-GAMMA = 0.99
-EPS_START = 0.9
+BATCH_SIZE = 64 #128
+GAMMA = 1
+EPS_START = 0.99
 EPS_END = 0.05
-EPS_DECAY = 1000
+EPS_DECAY = 10000
 TAU = 0.005
-LR = 1e-4
+LR = 5e-4
 
 # Environment
+
+
+config = {
+"batch_size" : BATCH_SIZE,
+"gamma" : GAMMA,
+"tau" : TAU,
+"learning_rate" : LR,
+"utility_function" : "  if distance_reward > 0: return (0.50 * distance_reward) + (win_reward) else: return (0.50 * distance_reward ) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)"
+}
 
 env_config = dict(
     env_name='deepdrive-2d-onewaypoint',
@@ -89,6 +98,12 @@ env_config = dict(
     incent_win=True,
     multi_objective=True
 )
+
+
+import wandb
+wandb.init(project="momarl-benchmarks",name="MO_DQN_DeepDrive_OneWayPointTest", config=config, group="MO_DQN_DeepDrive_OneWayPoint")
+
+
 
 
 env = OneWaypointEnv(env_configuration=env_config, render_mode=None)
@@ -113,10 +128,10 @@ memory = ReplayMemory(10000)
 
 
 def utility_f(vec):
-    speed_reward, win_reward, gforce_penalty, collision_penalty, jerk_penalty, lane_penalty = vec
+    distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
 
-    return  np.log(1 + (0.50 * speed_reward) + win_reward - (0.006 * 5 * gforce_penalty) - (4 * collision_penalty) - (
-                3.3e-5 * jerk_penalty) - (0.02 * lane_penalty))
+    return (0.50 * distance_reward) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
+
 
 def calculate_utilities_batch(total_rewards):
     total_rewards = total_rewards.tolist()
@@ -191,7 +206,7 @@ def optimize_model():
         expected_mutli_objective_state_action_values =  reward_batch + (next_state_values * GAMMA) * ~done_batch.unsqueeze(1)
 
     # Compute Huber loss
-    criterion = nn.SmoothL1Loss()
+    criterion = nn.MSELoss()
     loss = criterion(multi_objective_state_action_values, expected_mutli_objective_state_action_values)
 
     # Optimize the model
@@ -201,10 +216,10 @@ def optimize_model():
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
 
-STATS_EVERY = 10
+STATS_EVERY = 1
 ep_rewards = []
 aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
-for episode in range(1000):
+for episode in range(20000):
     # Initialize the environment and get it's state
     done = False
     obs, info = env.reset()
@@ -231,11 +246,11 @@ for episode in range(1000):
 
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
-        target_net.load_state_dict(target_net_state_dict)
+        # target_net_state_dict = target_net.state_dict()
+        # policy_net_state_dict = policy_net.state_dict()
+        # for key in policy_net_state_dict:
+        #     target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+        # target_net.load_state_dict(target_net_state_dict)
 
     ep_rewards.append(episode_reward)
     if not episode % STATS_EVERY:
@@ -244,6 +259,7 @@ for episode in range(1000):
         aggr_ep_rewards['avg'].append(average_reward)
         aggr_ep_rewards['max'].append(max(ep_rewards[-STATS_EVERY:]))
         aggr_ep_rewards['min'].append(min(ep_rewards[-STATS_EVERY:]))
+        wandb.log({'ep': episode, 'avg_reward': average_reward})
         print(f'Episode: {episode:>5d}, average reward: {average_reward:>4.1f}')
 
 
