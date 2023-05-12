@@ -15,6 +15,7 @@ env_config = dict(
     collision_penalty_coeff=4,
     lane_penalty_coeff=0.02,
     speed_reward_coeff=0.50,
+jerk_threshold=150.0,
     gforce_threshold=None,
     incent_win=True,
     constrain_controls=False,

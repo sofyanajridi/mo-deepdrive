@@ -8,16 +8,16 @@ from momarl_benchmarks.algorithms.in_progress.mo_dqn_without_state_cond import D
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from loguru import logger
-
+#
 logger.stop()
 
 
 
 # Hyperparameters
-BATCH_SIZE = 128  # 128
+BATCH_SIZE = 256  # 128
 GAMMA = 0.99
-TAU = 0.005
-LR = 1e-4
+TAU = 0.001
+LR =  3e-5
 
 config = {
 "batch_size" : BATCH_SIZE,
@@ -37,7 +37,7 @@ env_config = dict(
 
 
 import wandb
-wandb.init(project="momarl-benchmarks",name="MO_DQN_DeepDrive_OneWayPoint_w/o_state_cond", config=config, group="MO_DQN_DeepDrive_OneWayPoint_w/o_state_cond",mode="disabled")
+wandb.init(project="momarl-benchmarks-test",name="MO_DQN_DeepDrive_OneWayPoint_w/o_state_cond", config=config, group="MO_DQN_DeepDrive_OneWayPoint_w/o_state_cond")
 
 env = OneWaypointEnv(env_configuration=env_config, render_mode=None)
 
@@ -52,17 +52,17 @@ def utility_f(vec):
     distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
 
     if distance_reward > 0:
-        return (0.50 * distance_reward) + (win_reward)
+        return  distance_reward + (win_reward) - pow((0.1 * gforce), 2) - pow((0.1 * jerk), 2)
     else:
-        return (0.50 * distance_reward ) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
+        return (0.50 * distance_reward) + (win_reward)
 
 
 dqn_agent = DQNAgent(env, BATCH_SIZE, GAMMA, TAU, LR, utility_f)
 
-STATS_EVERY = 5
+STATS_EVERY = 1
 ep_rewards = []
 aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
-for episode in range(5000):
+for episode in range(50_000):
     # Initialize the environment and get it's state
     done = False
     obs, info = env.reset()

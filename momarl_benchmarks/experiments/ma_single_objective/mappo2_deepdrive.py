@@ -236,6 +236,12 @@ env_config = dict(
     env_name='deepdrive-2d-intersection',
     is_intersection_map=True,
     discrete_actions=COMFORTABLE_ACTIONS2,
+    jerk_penalty_coeff=0.10,
+    gforce_penalty_coeff=0.031,
+    lane_penalty_coeff=0.02,
+    collision_penalty_coeff=0.31,
+    speed_reward_coeff=0.50,
+    incent_win=True
 )
 
 
@@ -265,7 +271,7 @@ ray.init()
 config = (
     PPOConfig()
     .environment("IntersectionEnv", disable_env_checking=True, observation_space=obs_space,
-                 action_space=action_discrete_space, env_config=env_config,render_env=True)
+                 action_space=action_discrete_space, env_config=env_config, render_env=True)
     .framework("torch")
     # Parallelize environment rollouts.
     .rollouts(batch_mode="complete_episodes",
@@ -298,9 +304,10 @@ stop = {
 tuner = tune.Tuner(
     "PPO",
     param_space=config.to_dict(),
+    tune_config=tune.TuneConfig(num_samples=4),
     run_config=air.RunConfig(stop=stop, verbose=1
 
-                             ,callbacks=[WandbLoggerCallback(project="momarl-benchmarks")]
+                             , callbacks=[WandbLoggerCallback(project="momarl-benchmarks")]
                              , name="MAPPO_DeepDrive_IntersectionEnv"),
 
 )

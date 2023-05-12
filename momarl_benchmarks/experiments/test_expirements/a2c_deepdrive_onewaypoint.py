@@ -7,13 +7,13 @@ import gymnasium
 from torch import nn
 import matplotlib.pyplot as plt
 
-
 # Code from:
 # https://medium.com/deeplearningmadeeasy/advantage-actor-critic-a2c-implementation-944e98616b
 # https://github.com/hermesdt/reinforcement-learning/blob/master/a2c/cartpole_a2c_online.ipynb
 
 
 ''' One step Actor critic '''
+
 
 class Actor(nn.Module):
     def __init__(self, state_dim, n_actions):
@@ -46,15 +46,12 @@ class Critic(nn.Module):
         return self.model(X)
 
 
-
-
 env_config = dict(
     env_name='deepdrive-2d-onewaypoint',
     is_intersection_map=False,
     discrete_actions=COMFORTABLE_ACTIONS2,
     incent_win=True
 )
-
 
 # env_config = dict(
 #     env_name='deepdrive-2d-onewaypoint',
@@ -74,8 +71,6 @@ env_config = dict(
 
 env = OneWaypointEnv(env_configuration=env_config, render_mode=None)
 
-
-
 state_dim = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
@@ -94,22 +89,17 @@ episode_rewards = []
 for i in range(1):
     done = False
     total_reward = 0
-    obs,info = env.reset()
+    obs, info = env.reset()
 
     while not done:
         probs = actor(torch.from_numpy(obs).float())
         dist = torch.distributions.Categorical(probs=probs)
         action = dist.sample()
 
-        next_obs, reward, terminated,truncated, info = env.step(action.detach().data.numpy())
+        next_obs, reward, terminated, truncated, info = env.step(action.detach().data.numpy())
         done = terminated
-        advantage = reward + (1 - done) * gamma * critic(torch.from_numpy(next_obs).float()) - critic(torch.from_numpy(obs).float())
-
-        print(advantage.detach())
-
-        if done:
-            print("Im done")
-            print(next_obs)
+        advantage = reward + (1 - done) * gamma * critic(torch.from_numpy(next_obs).float()) - critic(
+            torch.from_numpy(obs).float())
 
         total_reward += reward
         obs = next_obs
@@ -124,14 +114,4 @@ for i in range(1):
         actor_loss.backward()
         adam_actor.step()
 
-
     episode_rewards.append(total_reward)
-
-
-
-
-
-
-
-
-

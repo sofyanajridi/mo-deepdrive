@@ -71,7 +71,7 @@ gamma = 0.99
 
 
 config = {
-    "learning_rate": 1e-3,
+    "learning_rate": 1e-4,
     "gamma": 0.99,
     "utility_function":"(0.50 * speed_reward ) + (win_reward) - (torch.pow((0.03 * gforce),2) - torch.pow((3.3e-5 * jerk),3))"
 
@@ -90,6 +90,12 @@ def utility(vec):
     speed_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
     penalty = (0.50 * speed_reward ) + (100 * win_reward) - (0.006 * 5 * (10 * gforce) - (3.3e-5 * (10 * gforce)))
     return (0.50 * speed_reward ) + (win_reward) - (torch.pow((0.03 * gforce),2) - torch.pow((3.3e-5 * jerk),3))
+
+# def utility(vec):
+#     distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
+#
+#     return (0.50 * distance_reward) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
+
 
 
 STATS_EVERY = 5

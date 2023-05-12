@@ -15,8 +15,13 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 env_config = dict(
     env_name='deepdrive-2d-intersection',
     is_intersection_map=True,
+    jerk_penalty_coeff=0.10,
+    gforce_penalty_coeff=0.031,
+    lane_penalty_coeff=0.02,
+    collision_penalty_coeff=0.31,
+    speed_reward_coeff=0.50,
+    incent_win=True
 )
-
 
 
 def env_creator(env_config):
@@ -87,6 +92,7 @@ stop = {
 tuner = tune.Tuner(
     "MADDPG",
     param_space=config.to_dict(),
+    tune_config=tune.TuneConfig(num_samples=4),
     run_config=air.RunConfig(stop=stop, verbose=1,
     callbacks=[WandbLoggerCallback(project="momarl-benchmarks")]
                              , name="MADDPG_DeepDrive_IntersectionEnv")
