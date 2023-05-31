@@ -9,7 +9,6 @@ import torch
 from momarl_benchmarks.wrappers.MultiAgentDeepdriveParallelWrapper import MultiAgentDeepdriveParallelWrapper
 
 
-torch.set_default_device("mps")
 
 logger.stop()
 
@@ -17,17 +16,24 @@ logger.stop()
 BATCH_SIZE = 128  # 128
 GAMMA = 0.99
 TAU = 0.005
-LR = 1e-6
+LR = 1e-4
 
 env_config = dict(
     env_name='deepdrive-2d-intersection',
     is_intersection_map=True,
     discrete_actions=COMFORTABLE_ACTIONS2,
-    incent_win=True,
-    multi_objective=True,
+    gforce_threshold=1.0,
+    end_on_lane_violation=True,
+    lane_margin=0.2,
+    expect_normalized_action_deltas=False,
     jerk_threshold=150.0,  # 15g/s
+    incent_win=True,
+    constrain_controls=False,
     incent_yield_to_oncoming_traffic=True,
+    physics_steps_per_observation=12,
+    multi_objective=True,
 )
+
 
 env = MultiAgentDeepdriveParallelWrapper(
     IntersectionWithGsAllowDecelEnv(env_configuration=env_config, render_mode=None), multi_objective=True)
@@ -43,24 +49,18 @@ def linear_utility_f(vec):
 def utility_f(vec):
     distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
 
-    if distance_reward > 0:
-        return (0.50 * distance_reward) + (10 * win_reward) - (4 * collision_penalty) - torch.pow((0.3 * gforce), 2) - torch.pow((0.1 * jerk), 2) - (
-                0.02 * lane_penalty)
+    if distance_reward == 0:
+        return -10
+    elif distance_reward < 0:
+        return (1 * distance_reward) + (win_reward) - (4 * collision_penalty) - pow((0.03 * gforce),4) - pow((3.3e-5 * jerk),4) - (0.06 * lane_penalty)
     else:
-        return torch.pow((0.50 * distance_reward),2) + (10 * win_reward) - (4 * collision_penalty)
+        return (0.50 * distance_reward) + (win_reward) - (4 * collision_penalty) -  pow((0.03 * gforce),2) -  pow((0.03 * gforce),2) - (0.06 * lane_penalty)
 
 
-from datetime import datetime
-
-now = datetime.now()
-
-# dd/mm/YY H:M:S
-dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
-
-wandb_name = "MA_MO_A2C_OneWaypointEnv_Utility_2_" + dt_string
+wandb_name = "MA_MO_A2C_OneWaypointEnv_Utility_2_"
 
 vehicle_1_a2c_agent = MOA2C(env, LR, GAMMA, utility_f)
 vehicle_2_a2c_agent = MOA2C(env, LR, GAMMA, utility_f)
 
-multi_agent_train(vehicle_1_a2c_agent, vehicle_2_a2c_agent, env, 20_000, enable_wandb_logging="online",
+multi_agent_train(vehicle_1_a2c_agent, vehicle_2_a2c_agent, env, 200_000, enable_wandb_logging="online",
                   wandb_group_name="MA_MO_A2C_OneWaypointEnv_Utility_2", wandb_name=wandb_name)

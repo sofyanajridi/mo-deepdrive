@@ -189,7 +189,7 @@ class MODQN:
         }
         print(f"Hyperparameters: {config}")
         import wandb
-        wandb.init(project="momarl-benchmarks-test", name=wandb_name, config=config,
+        wandb.init(project="momarl-benchmarks-final", name=wandb_name, config=config,
                    group=wandb_group_name, mode=enable_wandb_logging)
 
 

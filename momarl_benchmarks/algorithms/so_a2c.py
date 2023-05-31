@@ -237,8 +237,7 @@ def multi_agent_train(vehicle_1: A2C, vehicle_2: A2C, env, nr_episodes, enable_w
             else:
                 done = False
 
-            if episode >= nr_episodes - 1000:
-                env.render()
+
 
             timestep += 1
 
