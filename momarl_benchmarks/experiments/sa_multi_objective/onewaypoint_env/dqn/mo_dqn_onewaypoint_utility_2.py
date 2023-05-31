@@ -16,7 +16,7 @@ logger.stop()
 BATCH_SIZE = 256  # 128
 GAMMA = 0.99
 TAU = 0.001
-LR =  3e-5
+LR =  1e-4
 
 env_config = dict(
     env_name='deepdrive-2d-onewaypoint',
@@ -40,10 +40,6 @@ env.reward_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,))
 env = TransformReward(env,rewardToD)
 
 
-def linear_utility_f(vec):
-    distance_reward, win_reward, gforce, jerk = vec
-
-    return (0.50 * distance_reward) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
 
 
 def utility_f(vec):
@@ -56,20 +52,7 @@ def utility_f(vec):
 
 
 
-
-from datetime import datetime
-
-now = datetime.now()
-
-# dd/mm/YY H:M:S
-dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
-
-wandb_name = "MO_DQN_OneWaypointEnv_Utility_2_" + dt_string
-
-
-
-
-
+wandb_name = "MO_DQN_OneWaypointEnv_Utility_2"
 
 dqn_agent = MODQN(env, batch_size=BATCH_SIZE, gamma=GAMMA, tau=TAU, lr=LR, utility_f=utility_f)
 dqn_agent.train(50_000, enable_wandb_logging="online", wandb_group_name="MO_DQN_OneWaypointEnv_Utility_2",

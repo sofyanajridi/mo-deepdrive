@@ -48,9 +48,9 @@ class DQNNetwork(nn.Module):
 
     def __init__(self, n_inputs, n_outputs):
         super(DQNNetwork, self).__init__()
-        self.layer1 = nn.Linear(n_inputs, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_outputs)
+        self.layer1 = nn.Linear(n_inputs, 256)
+        self.layer2 = nn.Linear(256, 256)
+        self.layer3 = nn.Linear(256, n_outputs)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -79,10 +79,10 @@ class MODQN:
             device)
         self.target_nn.load_state_dict(self.policy_nn.state_dict())
         self.optimizer = optim.AdamW(self.policy_nn.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayMemory(5000)
+        self.memory = ReplayMemory(10000)
         self.eps_end = 0.05
         self.eps_start = 0.9
-        self.eps_decay = 1000
+        self.eps_decay = 4000
         self.utility_f = utility_f
         self.steps_done = 0
         self.num_param_updates = 0
@@ -151,7 +151,7 @@ class MODQN:
                         next_state_values * self.gamma) * ~done_batch.unsqueeze(1)
 
         # loss
-        criterion = nn.HuberLoss()
+        criterion = nn.SmoothL1Loss()
         loss = criterion(multi_objective_state_action_values, expected_mutli_objective_state_action_values)
 
         # Optimize the model
@@ -165,15 +165,15 @@ class MODQN:
         torch.nn.utils.clip_grad_value_(self.policy_nn.parameters(), 100)
         self.optimizer.step()
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-
-    def target_nn_soft_weights_update(self):
         target_net_state_dict = self.target_nn.state_dict()
         policy_net_state_dict = self.policy_nn.state_dict()
         for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
+            target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (
+                    1 - self.tau)
         self.target_nn.load_state_dict(target_net_state_dict)
+
+        # Soft update of the target network's weights
+        # θ′ ← τ θ + (1 −τ )θ′
 
 
 
@@ -193,7 +193,7 @@ class MODQN:
                    group=wandb_group_name, mode=enable_wandb_logging)
 
 
-        STATS_EVERY = 1
+        STATS_EVERY = 5
         ep_rewards = []
         aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
         for episode in range(nr_episodes):
@@ -223,7 +223,7 @@ class MODQN:
 
                 self.optimize_model()
 
-                self.target_nn_soft_weights_update()
+
 
 
             ep_rewards.append(self.utility_f(episode_reward))

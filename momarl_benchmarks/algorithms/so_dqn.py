@@ -172,7 +172,7 @@ class DQN:
         wandb.init(project="momarl-benchmarks-final", name=wandb_name, config=config,
                    group=wandb_group_name, mode=enable_wandb_logging)
 
-        STATS_EVERY = 1
+        STATS_EVERY = 5
         ep_rewards = []
         aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
         
