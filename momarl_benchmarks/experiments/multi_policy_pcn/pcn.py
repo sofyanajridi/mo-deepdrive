@@ -1,7 +1,7 @@
 from deepdrive_2d.deepdrive_zero.envs.variants import OneWaypointEnv
 from deepdrive_2d.deepdrive_zero.discrete.comfortable_actions2 import COMFORTABLE_ACTIONS2
 from loguru import logger
-logger.stop()
+# logger.stop()
 
 import mo_gymnasium as mo_gym
 import numpy as np
@@ -18,7 +18,7 @@ def rewardTo2D(r):
 
 
 
-    return [distance_reward,win_reward,gforce,jerk]
+    return [0.50 * distance_reward,win_reward,- 0.03 * gforce,- 3.3e-5 * jerk]
 
 
 
@@ -50,8 +50,8 @@ def main():
 
     agent = PCN(
         env,
-        scaling_factor=np.array([0.1, 0.1,0.1,0.1,0.1]),
-        learning_rate=1e-6,
+        scaling_factor=np.array([1, 1,1,1,1]),
+        learning_rate=1e-4,
         batch_size=256,
         project_name="MORL-Baselines",
         experiment_name="PCN",
@@ -60,12 +60,13 @@ def main():
 
     agent.train(
         eval_env=make_env(),
-        total_timesteps=int(1e7),
-        ref_point=np.array([-20, -20,-20, -20]),
+        total_timesteps=int(1e6),
+        ref_point=np.array([0, 0,0, 0]),
         num_er_episodes=20,
         max_buffer_size=50,
         num_model_updates=50,
-        num_step_episodes=10
+        max_return=np.array([20, 1, 0,0]),
+        num_step_episodes=100
     )
 
 

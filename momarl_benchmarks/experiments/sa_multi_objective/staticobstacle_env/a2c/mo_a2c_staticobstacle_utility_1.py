@@ -10,7 +10,7 @@ from gymnasium.wrappers import TransformReward
 from loguru import logger
 import torch
 import numpy as np
-logger.stop()
+# logger.stop()
 
 def rewardTo2D(r):
     distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = r
@@ -58,4 +58,4 @@ def linear_utility_f(vec):
 wandb_name = "MO_A2C_StaticOnstacleEnv_Utility_1"
 
 a2c_agent = MOA2C(env, LR, GAMMA, linear_utility_f)
-a2c_agent.train(20_000, enable_wandb_logging="online", wandb_group_name="MO_A2C_StaticOnstacleEnv_Utility_1", wandb_name=wandb_name)
+a2c_agent.train(20_000, enable_wandb_logging="disabled", wandb_group_name="MO_A2C_StaticOnstacleEnv_Utility_1", wandb_name=wandb_name)

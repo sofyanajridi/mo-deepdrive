@@ -46,11 +46,11 @@ def utility_f(vec):
     if distance_reward > 2:
         return  distance_reward + (0.4 * win_reward) - (0.1 * gforce) - (0.1 * jerk)
     else:
-        return (0.50 * distance_reward) + (win_reward) - torch.pow((0.1 * gforce), 2) - torch.pow((0.1 * jerk), 2)
+        return (0.50 * distance_reward) + (win_reward) - pow((0.1 * gforce), 2) - pow((0.1 * jerk), 2)
 
 
 
 wandb_name = "MO_A2C_OneWaypointEnv_Utility_2"
 
 a2c_agent = MOA2C(env, LR, GAMMA, utility_f)
-a2c_agent.train(5000, enable_wandb_logging="online", wandb_group_name="MO_A2C_OneWaypointEnv_Utility_3", wandb_name=wandb_name)
+a2c_agent.train(5000, enable_wandb_logging="disabled", wandb_group_name="MO_A2C_OneWaypointEnv_Utility_3", wandb_name=wandb_name)
