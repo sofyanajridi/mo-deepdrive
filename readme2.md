@@ -3,6 +3,17 @@
 
 Self driving car benchmark based on the original DeepDrive simulator with added support for multi-objective RL.
 
+## Motivation
+To the best of our knowledge, the development for both the DeepDrive and DeepDrive zero
+benchmarks has been abandoned. There has been no update since June 2020 for the DeepDrive benchmark and November 2021 for the DeepDrive Zero benchmark. Both benchmarks
+fail during installation due to outdated libraries and API calls. However, the DeepDrive zero
+benchmark is still a very interesting simulator for the development and introduction to the field
+of single-agent, multi-agent, single-objective and multi-objective RL. Moreover, looking
+closer at the objective in the DeepDrive benchmark reveals that it is constructed of multiple
+objectives where those objectives are combined into a scalar reward. As such, we deconstruct
+this benchmark, reveal its underlying multi-objective nature, and update, extend, and modify it
+to serve as a novel benchmark for multi-objective (multi-agent) reinforcement learning literature.
+
 
 
 ## Enviroment variation
@@ -64,6 +75,76 @@ episode.
     <em>The highway-v0 environment.</em>
 </p>
 
+## Action Space
+You can choose between a discrete or continous action space.
+- Discrete actions: (Between 0 and 21)
+    - 0: 'IDLE'
+    - 1: 'DECAY_STEERING_MAINTAIN_SPEED'
+    - ...
+    - 20: 'LARGE_STEER_RIGHT_DECREASE_SPEED',
+    - 21: 'LARGE_STEER_RIGHT_INCREASE_SPEED',
+
+- Continous actions: [steer, accel, brake] continous value between -1 and 1 for each action
+    - steer: Heading angle of the ego
+    - accel: m/s/s of the ego, positive for forward, negative for reverse
+    - brake: From 0g at -1 to 1g at 1 of brake force
+      
+
+    |**Action Space** | |
+    | ------------- | ------------- |
+    | **Variable**| **Range**|
+    | steer     | {-1, 1} |
+    | accel | {-1, 1} |
+    | brake | {-1, 1} |
+
+## Multi-Objective
+
+This benchmarj supports multi-objective RL and can be configured to return a vectorized reward instead of a scalar reward.
+This can be done by configuring the env_config function of env after calling env.make() and adding the following
+property ``` multi_objective=True ```.
+
+Each environment has the following objectives:
+
+**OneWayPoint:**
+
+$$  \begin{bmatrix}
+    distance \\
+    destination \\
+    g−force \\
+    jerk \\
+    \end{bmatrix} 
+    $$ 
+    
+**StaticObstacle:**
+
+$$  \begin{bmatrix}
+    distance \\
+    destination \\
+    g−force \\
+    collision \\
+    jerk \\
+    \end{bmatrix} 
+    $$ 
+
+**Intersection:**
+
+$$  \begin{bmatrix}
+    distance \\
+    destination \\
+    g−force \\
+    collision \\
+    jerk \\
+    lane violation \\
+    \end{bmatrix} 
+    $$ 
+
+The distance objective measures how close the vehicle is to the end destination and the
+destination objective will either return one if the destination was reached and 0 if not. Instead
+of enforcing a penalty for g-force, jerk and lane violation, we return the actual g-force and jerk
+value and the distance margin of lane violation. As a general rule, we want to maximise the
+distance and destination objectives and minimise the g-force, jerk, collision and lane violation
+objectives
+
 ## Installation
 
 ```
@@ -93,6 +174,49 @@ for _ in range(1000):
 ## Documentation
 
 Read the [documentation online]().
+
+## Bugs and issues
+
+- env.render() does not work anymore, this is because the original benchmark is calling a non-existing function from a library (pyglet) that has now been updated
+    - The function that is causing this issue can be found in file _env.py_  line 261:
+        ```
+        pyglet.app.event_loop.has_exit = False
+        pyglet.app.event_loop._legacy_setup() # This line is causing the issue. 
+        pyglet.app.event_loop.run()
+        pyglet.app.platform_event_loop.start()
+        pyglet.app.event_loop.dispatch_event('on_enter')
+        pyglet.app.event_loop.is_running = True
+        ```
+## Environment Parameters
+Each environment can be further configured on the following properties:
+
+<details><summary><a>Variables</a></summary>
+
+ - jerk_penalty_coeff              (default 0)
+ - gforce_penalty_coeff            (default 0)
+ - lane_penalty_coeff              (default 0.02)
+ - collision_penalty_coeff         (default 0.31)
+ - speed_reward_coeff              (default 0.5)
+ - win_coefficient                 (default 1)
+ - gforce_threshold                (default 1)
+ - jerk_threshold                  (default None)
+ - constrain_controls              (default False)
+ - ignore_brake                    (default False)
+ - forbid_deceleration             (default False)
+ - expect_normalized_action_deltas (default False)
+ - discrete_actions
+ - incent_win                      (default True)
+ - dummy_accel_agent_indices       (default None)
+ - wait_for_action                 (default False)
+ - incent_yield_to_oncoming_traffic (default True)
+ - physics_steps_per_observation   (default 6)
+ - end_on_lane_violation           (default False)
+ - lane_margin                     (default 0)
+ - is_intersection_map             (default True)
+ - end_on_harmful_gs               (default False)
+
+</details>
+ 
 
 ## Acknowledgment
 Deepdrive Zero: https://github.com/deepdrive/deepdrive-zero
