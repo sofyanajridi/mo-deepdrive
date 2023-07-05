@@ -32,7 +32,7 @@ the benchmark. In this scenario, a single vehicle must drive to the end destinat
 as an orange circle. The placement of the orange circle is random and changes every episode.
 
 <p align="center">
-    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/1b058db8-f2ee-452b-b10d-9db742cf6aeb"><br/>
+    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/49fa7773-78f5-417e-aa13-a0ee9cd6ea0b"><br/>
     <em>The OneWayPoint environment. (Ignore the blue lines/path)</em>
 </p>
 
@@ -50,7 +50,7 @@ a single vehicle must drive to the end destination without causing a collision w
 the bike. Both the placement of the obstacle and the end destination are random.
 
 <p align="center">
-    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/dd14dff3-9392-46f0-8ff9-86299ad3e824"><br/>
+    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/137385f4-9a98-462f-a308-ddb9662f8432"><br/>
     <em>The StaticObstacle environment. (Ignore the blue lines/path)</em>
 </p>
 
@@ -72,7 +72,7 @@ of the intersection. A collision or not reaching the destination after a certain
 episode.
 
 <p align="center">
-    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/89c208b1-311b-41a5-b82f-10f2ebe6f612"><br/>
+    <img src="https://github.com/sofyanajridi/mo-deepdrive/assets/33550874/206d922e-d6e0-4990-a087-9175408ae860"><br/>
     <em>The multi-agent Intersection environment.</em>
 </p>
 
