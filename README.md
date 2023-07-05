@@ -177,16 +177,8 @@ Read the [documentation online]().
 
 ## Bugs and issues
 
-- env.render() does not work anymore, this is because the original benchmark is calling a non-existing function from a library (pyglet) that has now been updated
-    - The function that is causing this issue can be found in file _env.py_  line 261:
-        ```
-        pyglet.app.event_loop.has_exit = False
-        pyglet.app.event_loop._legacy_setup() # This line is causing the issue. 
-        pyglet.app.event_loop.run()
-        pyglet.app.platform_event_loop.start()
-        pyglet.app.event_loop.dispatch_event('on_enter')
-        pyglet.app.event_loop.is_running = True
-        ```
+- env.render() does not work anymore, see Issues.
+  
 ## Environment Parameters
 Each environment can be further configured on the following properties:
 
