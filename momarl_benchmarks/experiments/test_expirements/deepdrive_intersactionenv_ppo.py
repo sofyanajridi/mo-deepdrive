@@ -1,9 +1,6 @@
 import gymnasium as gym
 from momarl_benchmarks.wrappers.v26ToV21Wrapper import V26toV21Wrapper
-from deepdrive_2d.deepdrive_zero.envs.variants import IntersectionWithGsAllowDecelEnv
-import sys
-sys.modules["gym"] = gym
-from stable_baselines3 import PPO
+from deepdrive_2d.deepdrive_zero.envs.variants import OneWaypointEnv,StaticObstacleEnv
 
 env_config = dict(
     env_name='deepdrive_2d-intersection-w-gs-allow-decel-v0',
@@ -17,23 +14,12 @@ env_config = dict(
     collision_penalty_coeff=1,
 )
 
-env = IntersectionWithGsAllowDecelEnv(env_configuration=env_config)
-env = V26toV21Wrapper(env)
+env = StaticObstacleEnv(env_configuration=env_config)
 
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=1_000)
-# model.save("ppo_intersection")
 
-vec_env = env
-obs = vec_env.reset()
 
-for i in range(10):
-    done = False
-    obs = vec_env.reset()
-    while not done:
-        action, _states = model.predict(obs, deterministic=True)
-        obs, reward, done, info = vec_env.step(action)
-        print("final obs")
-        print(obs)
-        vec_env.render()
+obs = env.reset()
+
+print(env.observation_space.shape[0])
+
 

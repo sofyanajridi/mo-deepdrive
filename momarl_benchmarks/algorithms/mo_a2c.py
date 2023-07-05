@@ -16,11 +16,11 @@ class Actor(nn.Module):
     def __init__(self, state_dim, n_actions):
         super().__init__()
         self.model = nn.Sequential(
-            nn.Linear(state_dim, 128),
+            nn.Linear(state_dim, 64),
             nn.Tanh(),
-            nn.Linear(128, 64),
+            nn.Linear(64, 32),
             nn.Tanh(),
-            nn.Linear(64, n_actions),
+            nn.Linear(32, n_actions),
             nn.Softmax()
         )
 
@@ -72,7 +72,7 @@ class MOA2C:
         }
         print(f"Hyperparameters: {config}")
         import wandb
-        wandb.init(project="momarl-benchmarks", name=wandb_name, config=config,
+        wandb.init(project="momarl-benchmarks-final", name=wandb_name, config=config,
                    group=wandb_group_name, mode=enable_wandb_logging)
 
         STATS_EVERY = 5
@@ -81,7 +81,7 @@ class MOA2C:
 
         for episode in range(nr_episodes):
             done = False
-            episode_reward = 0
+            episode_reward = np.zeros(self.n_objectives)
             obs, info = self.env.reset()
             accrued_reward = np.zeros(self.n_objectives)
             timestep = 0
@@ -106,7 +106,7 @@ class MOA2C:
                 #             - self.utility_f(torch.Tensor(accrued_reward) + (pow(self.gamma, timestep) * self.critic_nn(
                 #     torch.from_numpy(obs).float())))
 
-                episode_reward += self.utility_f(torch.Tensor(reward))
+                episode_reward += reward
 
                 accrued_reward += reward
                 # accrued_reward += pow(gamma, timestep) * reward
@@ -125,7 +125,7 @@ class MOA2C:
 
             wandb.log({'episode': episode, 'reward_per_ep': episode_reward,
                        })
-            ep_rewards.append(episode_reward)
+            ep_rewards.append(self.utility_f(torch.Tensor(episode_reward)))
             if not episode % STATS_EVERY:
                 average_reward = sum(ep_rewards[-STATS_EVERY:]) / STATS_EVERY
                 aggr_ep_rewards['ep'].append(episode)
@@ -196,8 +196,6 @@ def multi_agent_train(vehicle_1: MOA2C, vehicle_2: MOA2C, env, nr_episodes, enab
 
             episode_reward_vehicle_1 += reward['vehicle1']
             episode_reward_vehicle_2 += reward['vehicle2']
-            wandb.log({'timestep': timestep, 'reward_per_timestep_vehicle_1': vehicle_1.utility_f(torch.Tensor(reward['vehicle1'])),
-                       'reward_per_timestep_vehicle_2': vehicle_2.utility_f(torch.Tensor(reward['vehicle2']))})
 
             advantage_vehicle_1 = vehicle_1.utility_f(
                 torch.Tensor(reward['vehicle1']) + torch.Tensor(accrued_reward_vehicle_1) + (
@@ -240,9 +238,6 @@ def multi_agent_train(vehicle_1: MOA2C, vehicle_2: MOA2C, env, nr_episodes, enab
 
             if done["vehicle1"] and done["vehicle1"]:
                 done = True
-                wandb.log({'ep_done': episode, 'won_vehicle_1': info['vehicle1']['stats']['done_only']['won'],
-                           'won_vehicle_2': info['vehicle2']['stats']['done_only']['won'],
-                           'info_vehicle_1': info['vehicle1'], 'info_vehicle_2': info['vehicle2']})
 
             else:
                 done = False

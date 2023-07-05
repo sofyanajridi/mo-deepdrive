@@ -48,9 +48,9 @@ class DQNNetwork(nn.Module):
 
     def __init__(self, n_inputs, n_outputs):
         super(DQNNetwork, self).__init__()
-        self.layer1 = nn.Linear(n_inputs, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_outputs)
+        self.layer1 = nn.Linear(n_inputs, 256)
+        self.layer2 = nn.Linear(256, 256)
+        self.layer3 = nn.Linear(256, n_outputs)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -79,10 +79,10 @@ class MODQN:
             device)
         self.target_nn.load_state_dict(self.policy_nn.state_dict())
         self.optimizer = optim.AdamW(self.policy_nn.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayMemory(5000)
+        self.memory = ReplayMemory(10000)
         self.eps_end = 0.05
         self.eps_start = 0.9
-        self.eps_decay = 1000
+        self.eps_decay = 4000
         self.utility_f = utility_f
         self.steps_done = 0
         self.num_param_updates = 0
@@ -151,7 +151,7 @@ class MODQN:
                         next_state_values * self.gamma) * ~done_batch.unsqueeze(1)
 
         # loss
-        criterion = nn.HuberLoss()
+        criterion = nn.SmoothL1Loss()
         loss = criterion(multi_objective_state_action_values, expected_mutli_objective_state_action_values)
 
         # Optimize the model
@@ -165,14 +165,13 @@ class MODQN:
         torch.nn.utils.clip_grad_value_(self.policy_nn.parameters(), 100)
         self.optimizer.step()
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
 
-    def target_nn_soft_weights_update(self):
+    def soft_target_network_update(self):
         target_net_state_dict = self.target_nn.state_dict()
         policy_net_state_dict = self.policy_nn.state_dict()
         for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
+            target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (
+                    1 - self.tau)
         self.target_nn.load_state_dict(target_net_state_dict)
 
 
@@ -189,11 +188,11 @@ class MODQN:
         }
         print(f"Hyperparameters: {config}")
         import wandb
-        wandb.init(project="momarl-benchmarks-test", name=wandb_name, config=config,
+        wandb.init(project="momarl-benchmarks-final", name=wandb_name, config=config,
                    group=wandb_group_name, mode=enable_wandb_logging)
 
 
-        STATS_EVERY = 1
+        STATS_EVERY = 5
         ep_rewards = []
         aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
         for episode in range(nr_episodes):
@@ -223,7 +222,9 @@ class MODQN:
 
                 self.optimize_model()
 
-                self.target_nn_soft_weights_update()
+                self.soft_target_network_update()
+
+
 
 
             ep_rewards.append(self.utility_f(episode_reward))
@@ -241,4 +242,129 @@ class MODQN:
             plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['min'], label="min rewards")
             plt.legend(loc=4)
             plt.show()
+
+def multi_agent_train_MODQN(vehicle_1: MODQN, vehicle_2: MODQN, env, nr_episodes, enable_wandb_logging="disabled",
+                          wandb_group_name=None,
+                          wandb_name=None, config=None):
+    print("Starting training...")
+    config = {
+        "vehicle_1_gamma": vehicle_1.gamma,
+        "vehicle_1_learning_rate": vehicle_1.lr,
+        "vehicle_1_utility_function": inspect.getsource(vehicle_1.utility_f),
+        "vehicle_1_batch_size": vehicle_1.batch_size,
+        "vehicle_1_tau": vehicle_1.tau,
+        "vehicle_2_gamma": vehicle_2.gamma,
+        "vehicle_2_learning_rate": vehicle_2.lr,
+        "vehicle_2_utility_function": inspect.getsource(vehicle_2.utility_f),
+        "vehicle_2_batch_size": vehicle_2.batch_size,
+        "vehicle_2_tau": vehicle_2.tau,
+    }
+    print(f"Hyperparameters: {config}")
+    import wandb
+    wandb.init(project="momarl-benchmarks-final", name=wandb_name, config=config,
+               group=wandb_group_name, mode=enable_wandb_logging)
+
+    STATS_EVERY = 5
+    ep_rewards_vehicle_1 = []
+    aggr_ep_rewards_vehicle_1 = {'ep': [], 'avg': [], 'max': [], 'min': []}
+    ep_rewards_vehicle_2 = []
+    aggr_ep_rewards_vehicle_2 = {'ep': [], 'avg': [], 'max': [], 'min': []}
+    ep_rewards_total = []
+    aggr_ep_rewards_total = {'ep': [], 'avg': [], 'max': [], 'min': []}
+
+    for episode in range(nr_episodes):
+        # Initialize the environment and get it's state
+        done = False
+        obs, info = env.reset()
+        obs_vehicle_1 = torch.tensor(obs['vehicle1'], dtype=torch.float32, device=device).unsqueeze(0)
+        obs_vehicle_2 = torch.tensor(obs['vehicle2'], dtype=torch.float32, device=device).unsqueeze(0)
+        episode_reward_vehicle_1 = np.zeros(vehicle_1.n_objectives)
+        episode_reward_vehicle_2 = np.zeros(vehicle_2.n_objectives)
+        accrued_reward_vehicle_1 = np.zeros(vehicle_1.n_objectives)
+        accrued_reward_vehicle_2 = np.zeros(vehicle_2.n_objectives)
+        total_episode_reward = np.zeros(vehicle_1.n_objectives)
+
+        while not done:
+            action_vehicle_1 = vehicle_1.select_action(obs_vehicle_1,accrued_reward_vehicle_1)
+            action_vehicle_2 = vehicle_2.select_action(obs_vehicle_2,accrued_reward_vehicle_2)
+            next_obs, reward, terminated, truncated, _ = env.step(
+                {'vehicle1': action_vehicle_1.item(),
+                 'vehicle2': action_vehicle_2.item()})
+            done = terminated
+
+            episode_reward_vehicle_1 += reward['vehicle1']
+            episode_reward_vehicle_2 += reward['vehicle2']
+            total_episode_reward += reward['vehicle1'] + reward['vehicle2']
+
+            accrued_reward_vehicle_1_tensor = torch.tensor(accrued_reward_vehicle_1, dtype=torch.float32, device=device).unsqueeze(0)
+            accrued_reward_vehicle_2_tensor = torch.tensor(accrued_reward_vehicle_2, dtype=torch.float32,
+                                                           device=device).unsqueeze(0)
+
+            reward_vehicle_1_tensor = torch.tensor(reward['vehicle1'], dtype=torch.float32, device=device).unsqueeze(0)
+            reward_vehicle_2_tensor = torch.tensor(reward['vehicle2'], dtype=torch.float32, device=device).unsqueeze(0)
+
+            next_obs_vehicle_1 = torch.tensor(next_obs['vehicle1'], dtype=torch.float32, device=device).unsqueeze(0)
+            next_obs_vehicle_2 = torch.tensor(next_obs['vehicle2'], dtype=torch.float32, device=device).unsqueeze(0)
+            done = terminated
+            done_vehicle_1 = torch.tensor([done['vehicle1']], device=device)
+            done_vehicle_2 = torch.tensor([done['vehicle2']], device=device)
+
+            # Store the transition in memory
+            vehicle_1.memory.push(obs_vehicle_1, action_vehicle_1, next_obs_vehicle_1, reward_vehicle_1_tensor,accrued_reward_vehicle_1_tensor,
+                                  done_vehicle_1)
+            vehicle_2.memory.push(obs_vehicle_2, action_vehicle_2, next_obs_vehicle_2, reward_vehicle_2_tensor,accrued_reward_vehicle_2_tensor,
+                                  done_vehicle_2)
+            # Move to the next state
+            obs_vehicle_1 = next_obs_vehicle_1
+            obs_vehicle_2 = next_obs_vehicle_2
+
+            accrued_reward_vehicle_1 = accrued_reward_vehicle_1 + reward['vehicle1']
+            accrued_reward_vehicle_2 = accrued_reward_vehicle_2 + reward['vehicle2']
+
+            # Perform one step of the optimization (on the policy network)
+            vehicle_1.optimize_model()
+            vehicle_2.optimize_model()
+
+            vehicle_1.soft_target_network_update()
+            vehicle_2.soft_target_network_update()
+
+            if done["vehicle1"] or done["vehicle2"]:
+                done = True
+            else:
+                done = False
+        ep_rewards_vehicle_1.append(vehicle_1.utility_f(episode_reward_vehicle_1))
+        ep_rewards_vehicle_2.append(vehicle_2.utility_f(episode_reward_vehicle_2))
+        ep_rewards_total.append(vehicle_1.utility_f(episode_reward_vehicle_1) + vehicle_2.utility_f(episode_reward_vehicle_2))
+
+        if not episode % STATS_EVERY:
+            average_reward_vehicle_1 = sum(ep_rewards_vehicle_1[-STATS_EVERY:]) / STATS_EVERY
+            aggr_ep_rewards_vehicle_1['ep'].append(episode)
+            aggr_ep_rewards_vehicle_1['avg'].append(average_reward_vehicle_1)
+            aggr_ep_rewards_vehicle_1['max'].append(max(ep_rewards_vehicle_1[-STATS_EVERY:]))
+            aggr_ep_rewards_vehicle_1['min'].append(min(ep_rewards_vehicle_1[-STATS_EVERY:]))
+
+            average_reward_vehicle_2 = sum(ep_rewards_vehicle_2[-STATS_EVERY:]) / STATS_EVERY
+            aggr_ep_rewards_vehicle_2['ep'].append(episode)
+            aggr_ep_rewards_vehicle_2['avg'].append(average_reward_vehicle_2)
+            aggr_ep_rewards_vehicle_2['max'].append(max(ep_rewards_vehicle_2[-STATS_EVERY:]))
+            aggr_ep_rewards_vehicle_2['min'].append(min(ep_rewards_vehicle_2[-STATS_EVERY:]))
+
+            average_reward_total = sum(ep_rewards_total[-STATS_EVERY:]) / STATS_EVERY
+            aggr_ep_rewards_total['ep'].append(episode)
+            aggr_ep_rewards_total['avg'].append(average_reward_total)
+            aggr_ep_rewards_total['max'].append(max(ep_rewards_total[-STATS_EVERY:]))
+            aggr_ep_rewards_total['min'].append(min(ep_rewards_total[-STATS_EVERY:]))
+
+            wandb.log({'ep': episode, 'avg_reward_vehicle_1': average_reward_vehicle_1,
+                       'max_reward_vehicle_1': max(ep_rewards_vehicle_1[-STATS_EVERY:]),
+                       'min_reward_vehicle_1': min(ep_rewards_vehicle_1[-STATS_EVERY:]),
+                       'avg_reward_vehicle_2': average_reward_vehicle_2,
+                       'max_reward_vehicle_2': max(ep_rewards_vehicle_2[-STATS_EVERY:]),
+                       'min_reward_vehicle_2': min(ep_rewards_vehicle_2[-STATS_EVERY:]),
+                       'avg_reward_total': average_reward_total,
+                       'max_reward_total': max(ep_rewards_total[-STATS_EVERY:]),
+                       'min_reward_total': min(ep_rewards_total[-STATS_EVERY:])})
+
+            print(
+                f'Episode: {episode:>5d}, average reward_vehicle_1: {average_reward_vehicle_1:>4.1f}, average reward_vehicle_2: {average_reward_vehicle_2:>4.1f}, average reward_total: {average_reward_total:>4.1f} ')
 

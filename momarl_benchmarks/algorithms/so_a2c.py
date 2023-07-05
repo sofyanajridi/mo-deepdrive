@@ -229,7 +229,7 @@ def multi_agent_train(vehicle_1: A2C, vehicle_2: A2C, env, nr_episodes, enable_w
             actor_loss_vehicle_2.backward()
             vehicle_2.actor_optimizer.step()
 
-            if done["vehicle1"] and done["vehicle1"]:
+            if done["vehicle1"] or done["vehicle2"]:
                 done = True
                 wandb.log({'ep_done': episode, 'won_vehicle_1': info['vehicle1']['stats']['done_only']['won'],
                           'won_vehicle_2': info['vehicle2']['stats']['done_only']['won'], 'info_vehicle_1': info['vehicle1'],'info_vehicle_2': info['vehicle2'] })
@@ -237,8 +237,7 @@ def multi_agent_train(vehicle_1: A2C, vehicle_2: A2C, env, nr_episodes, enable_w
             else:
                 done = False
 
-            if episode >= nr_episodes - 1000:
-                env.render()
+
 
             timestep += 1
 

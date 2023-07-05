@@ -2,10 +2,25 @@ from deepdrive_2d.deepdrive_zero.envs.variants import OneWaypointEnv
 from deepdrive_2d.deepdrive_zero.discrete.comfortable_actions2 import COMFORTABLE_ACTIONS2
 from momarl_benchmarks.algorithms.mo_dqn import MODQN
 from momarl_benchmarks.algorithms.so_a2c import A2C
+from momarl_benchmarks.algorithms.mo_a2c import MOA2C
+
+import gymnasium as gym
+from gymnasium.wrappers import TransformReward
 
 from loguru import logger
-
+import torch
+import numpy as np
 logger.stop()
+
+def rewardTo2D(r):
+    distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = r
+
+
+    return [distance_reward,win_reward,gforce,jerk]
+
+
+
+
 
 # Hyperparameters
 BATCH_SIZE = 128  # 128
@@ -23,20 +38,15 @@ env_config = dict(
 
 env = OneWaypointEnv(env_configuration=env_config, render_mode=None)
 
+env.reward_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,))
+env = TransformReward(env,rewardTo2D)
 
 def linear_utility_f(vec):
-    distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
+    distance_reward, win_reward, gforce, jerk = vec
 
     return (0.50 * distance_reward) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
 
 
-def utility_f(vec):
-    distance_reward, win_reward, gforce, collision_penalty, jerk, lane_penalty = vec
-
-    if distance_reward > 0:
-        return (0.50 * distance_reward) + (win_reward)
-    else:
-        return (0.50 * distance_reward) + (win_reward) - (0.03 * gforce) - (3.3e-5 * jerk)
 
 
 # dqn_agent = MODQN(env, BATCH_SIZE, GAMMA, TAU, LR, utility_f)

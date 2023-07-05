@@ -14,7 +14,6 @@ from deepdrive_2d.deepdrive_zero.constants import COMFORTABLE_STEERING_ACTIONS, 
 # #
 import numpy as np
 
-from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray import air, tune
@@ -30,7 +29,7 @@ torch, nn = try_import_torch()
 
 from ray import air, tune
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
-from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.a2c import A2CConfig
 
 from ray.rllib.examples.env.two_step_game import TwoStepGame
 from ray.rllib.models import ModelCatalog, ModelV2
@@ -43,6 +42,14 @@ env_config = dict(
     env_name='deepdrive-2d-intersection',
     is_intersection_map=True,
     discrete_actions=COMFORTABLE_ACTIONS2,
+    jerk_penalty_coeff=0.10,
+    gforce_penalty_coeff=0.031,
+    lane_penalty_coeff=0.02,
+    collision_penalty_coeff=0.31,
+    speed_reward_coeff=0.50,
+    incent_win=True,
+    end_on_lane_violation=True,
+
 )
 
 def env_creator(env_config):
@@ -184,7 +191,7 @@ def agent_to_policy_map(agent_id, episode, worker, **kwargs):
 ray.init()
 
 config = (
-    PPOConfig()
+    A2CConfig()
     .environment("IntersectionEnv", disable_env_checking=True, observation_space=obs_space,
                  action_space=action_space, env_config=env_config)
     .framework("torch")
@@ -212,16 +219,16 @@ config = (
 )
 
 stop = {
-    "timesteps_total": 20_000_000,
+    "timesteps_total": 2_000_000,
 }
 
 tuner = tune.Tuner(
-    "PPO",
+    "A2C",
     param_space=config.to_dict(),
     run_config=air.RunConfig(stop=stop, verbose=1
 
-                             # ,callbacks=[WandbLoggerCallback(project="momarl-benchmarks")]
-                             , name="MAPPO_DeepDrive_IntersectionEnv"),
+                             ,callbacks=[WandbLoggerCallback(project="momarl-benchmarks-final")]
+                             , name="CC_A2C"),
 
 )
 
