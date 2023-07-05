@@ -5,7 +5,8 @@ Self driving car benchmark based on the original DeepDrive simulator with added 
 
 ## Motivation
 To the best of our knowledge, the development for both the DeepDrive and DeepDrive zero
-benchmarks has been abandoned. There has been no update since June 2020 for the DeepDrive benchmark and November 2021 for the DeepDrive Zero benchmark. Both benchmarks
+benchmarks has been abandoned. There has been no update since June 2020 for the [DeepDrive](https://github.com/deepdrive/deepdrive)
+ benchmark and November 2021 for the [DeepDrive-Zero](https://github.com/deepdrive/deepdrive-zero) benchmark. Both benchmarks
 fail during installation due to outdated libraries and API calls. However, the DeepDrive zero
 benchmark is still a very interesting simulator for the development and introduction to the field
 of single-agent, multi-agent, single-objective and multi-objective RL. Moreover, looking
