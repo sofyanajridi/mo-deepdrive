@@ -150,7 +150,8 @@ objectives
 
 ```
 git clone https://github.com/sofyanajridi/mo-deepdrive
-pip install -e .
+cd mo-deepdrive
+pip install .
 ```
 
 ## Usage
