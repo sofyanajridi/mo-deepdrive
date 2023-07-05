@@ -1,7 +1,3 @@
-import gymnasium as gym
-import numpy as np
-import random
-
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from deepdrive_zero.envs.env import Deepdrive2DEnv
 

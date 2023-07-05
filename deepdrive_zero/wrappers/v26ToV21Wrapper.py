@@ -1,6 +1,5 @@
 import gymnasium as gym
 
-
 class V26toV21Wrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
