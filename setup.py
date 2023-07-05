@@ -1,4 +1,5 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+
 
 setup(name='mo-deepdrive',
       version='0.0.1',
@@ -6,5 +7,5 @@ setup(name='mo-deepdrive',
       install_requires=['gym', 'numpy', 'scipy', 'arcade', 'loguru',
                         'python-box', 'numba', 'matplotlib',
                         'retry', 'dataclasses'],
-      py_modules = []
+      packages=find_packages()
       )
